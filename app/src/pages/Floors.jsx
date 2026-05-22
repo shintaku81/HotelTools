@@ -560,7 +560,7 @@ function ProgressDashboard({ rooms }) {
 
 // ─── Main Component ─────────────────────────────────────────────────────────────
 
-export default function Floors({ user, onLogout }) {
+export default function Floors({ user, onLogout, onBack }) {
   const { rooms, loading, updateRoom } = useRooms()
 
   const [activeFloor, setActiveFloor] = useState('all')
@@ -685,10 +685,13 @@ export default function Floors({ user, onLogout }) {
     <div className="min-h-screen bg-slate-100 flex flex-col">
 
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-40 flex items-center justify-between px-4 py-3 shadow-sm">
-        <div>
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-40 flex items-center gap-2 px-4 py-3 shadow-sm">
+        {onBack && (
+          <button onClick={onBack} className="text-slate-500 text-lg font-bold px-1 active:opacity-60 touch-manipulation">‹</button>
+        )}
+        <div className="flex-1">
           <p className="text-xs text-slate-400 leading-tight">ホテルパコジュニア 北見</p>
-          <p className="text-sm font-bold text-slate-900 leading-tight">清掃管理</p>
+          <p className="text-sm font-bold text-slate-900 leading-tight">通常清掃</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="text-right">
