@@ -716,7 +716,7 @@ export default function Floors({ user, onLogout, onBack }) {
             onClick={onLogout}
             className="ml-1 px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-xs font-semibold active:bg-slate-200 touch-manipulation border border-slate-200"
           >
-            変更
+            ログアウト
           </button>
         </div>
       </header>
