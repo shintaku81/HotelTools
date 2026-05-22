@@ -37,7 +37,7 @@ export function determineCleaningType(泊数) {
   if (parts.length !== 2) return null
   const current = parseInt(parts[0])
   const total   = parseInt(parts[1])
-  if (isNaN(current) || isNaN(total) || total === 0) return null
+  if (isNaN(current) || isNaN(total) || total === 0 || current <= 0) return null
 
   if (current === total) return 'co'
   if (total > 5 && current % 3 === 0) return 'eco'

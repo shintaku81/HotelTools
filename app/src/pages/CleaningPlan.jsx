@@ -199,7 +199,6 @@ export default function CleaningPlan({ onBack }) {
             📂 別のファイルを読み込む
           </button>
         )}
-        <input ref={fileInputRef} type="file" accept=".xls,.xlsx,.xlsm,.xlsb,.csv" className="hidden" onChange={handleFileChange} />
 
         {error && <p className="text-sm text-red-600 bg-red-50 rounded-xl px-4 py-3">{error}</p>}
 

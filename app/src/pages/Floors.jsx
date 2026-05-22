@@ -465,7 +465,7 @@ function AmenitySummary({ rooms }) {
 function ProgressDashboard({ rooms }) {
   // Rooms planned for cleaning today (have a cleaning_type assigned)
   const planned = rooms.filter(r => r.cleaning_type !== null)
-  const completed = planned.filter(r => r.status === 'cleaned' || r.status === 'available' && r.updated_by)
+  const completed = planned.filter(r => r.status === 'cleaned' || r.status === 'available')
   const cleaning  = planned.filter(r => r.status === 'cleaning')
   const waiting   = planned.filter(r => r.status === 'checkout')
   const rate = planned.length > 0 ? Math.round(completed.length / planned.length * 100) : 0

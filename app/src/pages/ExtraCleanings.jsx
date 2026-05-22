@@ -27,7 +27,7 @@ function RoomPicker({ type, addedRooms, onSelect, onClose }) {
   const [activeFloor, setActiveFloor] = useState('all')
   const tc = CLEANING_TYPES.find(t => t.value === type)
 
-  const addedSet = new Set(addedRooms.map(e => e.room))
+  const addedSet = new Set(addedRooms.map(e => `${e.room}:${e.type}`))
 
   function handleRoomTap(roomNum) {
     onSelect(String(roomNum))
@@ -77,7 +77,7 @@ function RoomPicker({ type, addedRooms, onSelect, onClose }) {
             <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-1.5 px-3 py-2">
               {FLOOR_ROOMS[floor].map(roomNum => {
                 const key = String(roomNum)
-                const already = addedSet.has(key)
+                const already = addedSet.has(`${key}:${type}`)
                 return (
                   <button
                     key={roomNum}
