@@ -15,8 +15,16 @@ export default function Home({ user, onNavigate, onLogout }) {
       key: 'plan',
       icon: '📋',
       label: '翌日計画',
-      desc: 'Excelから清掃計画を生成',
+      desc: 'Excelから清掃計画を生成・割り当て',
       color: 'bg-indigo-600',
+      available: isLeaderOrFront,
+    },
+    {
+      key: 'calendar',
+      icon: '📅',
+      label: '計画カレンダー',
+      desc: '過去の計画確認・休館日設定',
+      color: 'bg-teal-600',
       available: isLeaderOrFront,
     },
     {
@@ -33,6 +41,14 @@ export default function Home({ user, onNavigate, onLogout }) {
       label: 'スタッフ',
       desc: 'スタッフ設定と担当数の管理',
       color: 'bg-slate-600',
+      available: isLeaderOrFront,
+    },
+    {
+      key: 'roommaster',
+      icon: '🏨',
+      label: '部屋マスター',
+      desc: '部屋タイプの変更と変更履歴',
+      color: 'bg-rose-700',
       available: isLeaderOrFront,
     },
   ]

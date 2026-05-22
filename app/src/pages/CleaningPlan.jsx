@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react'
 import { parseExcel, autoAssign, analyzeAssignment } from '../utils/cleaningLogic.js'
 import { loadStaff } from '../config/staff.js'
+import { savePlan, loadPlan } from '../utils/planStorage.js'
 
 function TypeBadge({ type }) {
   if (type === 'co')  return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700 border border-red-200">CO</span>
@@ -24,14 +25,20 @@ const STAFF_PALETTE = [
 
 const FLOORS = [2, 3, 4, 5, 6, 7]
 
-export default function CleaningPlan({ onBack }) {
-  const [rooms, setRooms]           = useState(null)
-  const [staffList, setStaffList]   = useState(() => loadStaff())
+export default function CleaningPlan({ onBack, initialDate }) {
+  const [rooms, setRooms]             = useState(null)
+  const [staffList, setStaffList]     = useState(() => loadStaff())
   const [assignments, setAssignments] = useState(null)  // { name: { rooms, points } }
-  const [warnings, setWarnings]     = useState([])
-  const [dragOver, setDragOver]     = useState(false)
-  const [fileName, setFileName]     = useState('')
-  const [error, setError]           = useState('')
+  const [warnings, setWarnings]       = useState([])
+  const [dragOver, setDragOver]       = useState(false)
+  const [fileName, setFileName]       = useState('')
+  const [error, setError]             = useState('')
+  const [saveDate, setSaveDate]       = useState(() => {
+    if (initialDate) return initialDate
+    const d = new Date(); d.setDate(d.getDate() + 1)
+    return d.toISOString().slice(0, 10)
+  })
+  const [saved, setSaved]             = useState(false)
   const fileInputRef = useRef()
 
   // Map name → palette index
@@ -71,6 +78,13 @@ export default function CleaningPlan({ onBack }) {
     setWarnings([])
     setFileName('')
     setError('')
+    setSaved(false)
+  }
+
+  function handleSavePlan() {
+    if (!rooms || !assignments) return
+    savePlan(saveDate, { rooms, assignments, staffList })
+    setSaved(true)
   }
 
   function reAssign() {
@@ -149,6 +163,23 @@ export default function CleaningPlan({ onBack }) {
                 </div>
               )
             })}
+          </div>
+
+          {/* Confirm save row */}
+          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2">
+            <input
+              type="date"
+              value={saveDate}
+              onChange={e => { setSaveDate(e.target.value); setSaved(false) }}
+              className="flex-1 border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-700 focus:outline-none focus:border-indigo-400"
+            />
+            <button
+              onClick={handleSavePlan}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold touch-manipulation transition-all
+                ${saved ? 'bg-green-100 text-green-700 border border-green-300' : 'bg-indigo-600 text-white active:bg-indigo-700'}`}
+            >
+              {saved ? '✓ 保存済み' : '確定・保存'}
+            </button>
           </div>
         </div>
       )}

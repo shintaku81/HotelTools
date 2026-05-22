@@ -3,8 +3,10 @@ import Login from './pages/Login.jsx'
 import Home from './pages/Home.jsx'
 import Floors from './pages/Floors.jsx'
 import CleaningPlan from './pages/CleaningPlan.jsx'
+import PlanCalendar from './pages/PlanCalendar.jsx'
 import ExtraCleanings from './pages/ExtraCleanings.jsx'
 import Staff from './pages/Staff.jsx'
+import RoomMaster from './pages/RoomMaster.jsx'
 
 // URL-based mode detection
 // /        → staff mode  (cleaner role)
@@ -23,6 +25,7 @@ export default function App() {
 
   const [user, setUser]     = useState(null)
   const [screen, setScreen] = useState('home')
+  const [planDate, setPlanDate] = useState(null)
 
   useEffect(() => {
     const saved = localStorage.getItem(storageKey)
@@ -43,12 +46,19 @@ export default function App() {
     setScreen('home')
   }
 
+  function navigateToPlan(date) {
+    setPlanDate(date)
+    setScreen('plan')
+  }
+
   if (!user) return <Login onLogin={handleLogin} mode={mode} />
 
-  if (screen === 'cleaning') return <Floors user={user} onLogout={handleLogout} onBack={() => setScreen('home')} />
-  if (screen === 'plan')     return <CleaningPlan onBack={() => setScreen('home')} />
-  if (screen === 'extra')    return <ExtraCleanings onBack={() => setScreen('home')} />
-  if (screen === 'staff')    return <Staff onBack={() => setScreen('home')} />
+  if (screen === 'cleaning')    return <Floors user={user} onLogout={handleLogout} onBack={() => setScreen('home')} />
+  if (screen === 'plan')        return <CleaningPlan onBack={() => setScreen('home')} initialDate={planDate} />
+  if (screen === 'calendar')    return <PlanCalendar onBack={() => setScreen('home')} onNavigatePlan={navigateToPlan} />
+  if (screen === 'extra')       return <ExtraCleanings onBack={() => setScreen('home')} />
+  if (screen === 'staff')       return <Staff onBack={() => setScreen('home')} />
+  if (screen === 'roommaster')  return <RoomMaster onBack={() => setScreen('home')} />
 
   return <Home user={user} onNavigate={setScreen} onLogout={handleLogout} mode={mode} />
 }

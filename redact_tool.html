@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>個人情報マスクツール</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: sans-serif; background: #1a1a2e; color: #eee; display: flex; flex-direction: column; height: 100vh; }
+
+  #toolbar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 16px; background: #16213e; border-bottom: 1px solid #0f3460;
+    flex-shrink: 0; flex-wrap: wrap;
+  }
+  #toolbar h1 { font-size: 15px; color: #e94560; margin-right: 8px; white-space: nowrap; }
+
+  button {
+    padding: 6px 14px; border: none; border-radius: 6px;
+    cursor: pointer; font-size: 13px; font-weight: bold;
+  }
+  #openBtn    { background: #0f3460; color: #fff; }
+  #undoBtn    { background: #533483; color: #fff; }
+  #clearBtn   { background: #7a1f1f; color: #fff; }
+  #saveBtn    { background: #1a6634; color: #fff; }
+  button:hover { opacity: 0.85; }
+  button:disabled { opacity: 0.4; cursor: default; }
+
+  label { font-size: 13px; color: #aaa; }
+  input[type=color] { width: 36px; height: 28px; border: none; border-radius: 4px; cursor: pointer; padding: 2px; background: #0f3460; }
+  input[type=range] { width: 80px; accent-color: #e94560; }
+  #opacityVal { font-size: 12px; min-width: 30px; color: #e94560; }
+  #countBadge { font-size: 12px; color: #888; }
+
+  #canvasWrap {
+    flex: 1; overflow: auto; display: flex;
+    justify-content: center; align-items: flex-start;
+    padding: 20px; background: #0d0d1a;
+  }
+  #canvas {
+    cursor: crosshair; display: block;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.6);
+  }
+  #placeholder {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 12px; color: #444; font-size: 16px; height: 300px; width: 500px;
+    border: 2px dashed #333; border-radius: 12px;
+  }
+  #placeholder .icon { font-size: 48px; }
+
+  #hint { font-size: 12px; color: #555; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <h1>🔒 マスクツール</h1>
+
+  <button id="openBtn">📂 画像を開く</button>
+  <input type="file" id="fileInput" accept="image/*" style="display:none">
+
+  <label>色:
+    <input type="color" id="colorPicker" value="#ff69b4">
+  </label>
+
+  <label>不透明度:
+    <input type="range" id="opacity" min="30" max="100" value="100">
+    <span id="opacityVal">100%</span>
+  </label>
+
+  <button id="undoBtn" disabled>↩ 元に戻す</button>
+  <button id="clearBtn" disabled>🗑 全消去</button>
+  <button id="saveBtn" disabled>💾 保存</button>
+
+  <span id="countBadge"></span>
+</div>
+
+<div id="canvasWrap">
+  <div id="placeholder">
+    <div class="icon">🖼️</div>
+    <div>「画像を開く」で JPG / PNG を選択</div>
+    <div id="hint">ドラッグで赤線を引いて個人情報を隠せます</div>
+  </div>
+  <canvas id="canvas" style="display:none"></canvas>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const fileInput = document.getElementById('fileInput');
+const colorPicker = document.getElementById('colorPicker');
+const opacitySlider = document.getElementById('opacity');
+const opacityVal = document.getElementById('opacityVal');
+const undoBtn = document.getElementById('undoBtn');
+const clearBtn = document.getElementById('clearBtn');
+const saveBtn = document.getElementById('saveBtn');
+const countBadge = document.getElementById('countBadge');
+const placeholder = document.getElementById('placeholder');
+
+let img = null;
+let rects = [];   // {x, y, w, h, color, opacity}
+let dragging = false;
+let startX, startY, curX, curY;
+
+// ---- opacity slider ----
+opacitySlider.addEventListener('input', () => {
+  opacityVal.textContent = opacitySlider.value + '%';
+});
+
+// ---- file open ----
+document.getElementById('openBtn').addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const image = new Image();
+    image.onload = () => {
+      img = image;
+      rects = [];
+      canvas.width = img.width;
+      canvas.height = img.height;
+      placeholder.style.display = 'none';
+      canvas.style.display = 'block';
+      render();
+      saveBtn.disabled = false;
+      updateUI();
+    };
+    image.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+  fileInput.value = '';
+});
+
+// ---- drag to draw rect ----
+canvas.addEventListener('mousedown', e => {
+  if (!img) return;
+  const r = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / r.width;
+  const scaleY = canvas.height / r.height;
+  startX = (e.clientX - r.left) * scaleX;
+  startY = (e.clientY - r.top)  * scaleY;
+  dragging = true;
+});
+
+canvas.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const r = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / r.width;
+  const scaleY = canvas.height / r.height;
+  curX = (e.clientX - r.left) * scaleX;
+  curY = (e.clientY - r.top)  * scaleY;
+  render();
+  drawPreview();
+});
+
+canvas.addEventListener('mouseup', e => {
+  if (!dragging) return;
+  dragging = false;
+  const r = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / r.width;
+  const scaleY = canvas.height / r.height;
+  curX = (e.clientX - r.left) * scaleX;
+  curY = (e.clientY - r.top)  * scaleY;
+  const w = curX - startX;
+  const h = curY - startY;
+  if (Math.abs(w) > 4 && Math.abs(h) > 4) {
+    rects.push({
+      x: Math.min(startX, curX),
+      y: Math.min(startY, curY),
+      w: Math.abs(w),
+      h: Math.abs(h),
+      color: colorPicker.value,
+      opacity: parseInt(opacitySlider.value) / 100
+    });
+    updateUI();
+  }
+  render();
+});
+
+canvas.addEventListener('mouseleave', () => {
+  if (dragging) { dragging = false; render(); }
+});
+
+// touch support (mobile)
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  const t = e.touches[0];
+  const r = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / r.width;
+  const scaleY = canvas.height / r.height;
+  startX = (t.clientX - r.left) * scaleX;
+  startY = (t.clientY - r.top)  * scaleY;
+  dragging = true;
+}, {passive: false});
+
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (!dragging) return;
+  const t = e.touches[0];
+  const r = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / r.width;
+  const scaleY = canvas.height / r.height;
+  curX = (t.clientX - r.left) * scaleX;
+  curY = (t.clientY - r.top)  * scaleY;
+  render(); drawPreview();
+}, {passive: false});
+
+canvas.addEventListener('touchend', e => {
+  if (!dragging) return;
+  dragging = false;
+  const w = curX - startX;
+  const h = curY - startY;
+  if (Math.abs(w) > 4 && Math.abs(h) > 4) {
+    rects.push({
+      x: Math.min(startX, curX),
+      y: Math.min(startY, curY),
+      w: Math.abs(w),
+      h: Math.abs(h),
+      color: colorPicker.value,
+      opacity: parseInt(opacitySlider.value) / 100
+    });
+    updateUI();
+  }
+  render();
+});
+
+// ---- undo / clear ----
+undoBtn.addEventListener('click', () => { rects.pop(); render(); updateUI(); });
+clearBtn.addEventListener('click', () => { rects = []; render(); updateUI(); });
+
+// ---- save ----
+saveBtn.addEventListener('click', () => {
+  if (!img) return;
+  const link = document.createElement('a');
+  link.download = 'masked_' + new Date().toISOString().slice(0,19).replace(/[:T]/g,'-') + '.jpg';
+  link.href = canvas.toDataURL('image/jpeg', 0.95);
+  link.click();
+});
+
+// ---- render ----
+function render() {
+  if (!img) return;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 0, 0);
+  for (const rc of rects) {
+    ctx.globalAlpha = rc.opacity;
+    ctx.fillStyle = rc.color;
+    ctx.fillRect(rc.x, rc.y, rc.w, rc.h);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawPreview() {
+  const w = curX - startX;
+  const h = curY - startY;
+  ctx.globalAlpha = parseInt(opacitySlider.value) / 100;
+  ctx.fillStyle = colorPicker.value;
+  ctx.fillRect(
+    Math.min(startX, curX), Math.min(startY, curY),
+    Math.abs(w), Math.abs(h)
+  );
+  ctx.globalAlpha = 1;
+  // outline
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([6, 3]);
+  ctx.strokeRect(
+    Math.min(startX, curX), Math.min(startY, curY),
+    Math.abs(w), Math.abs(h)
+  );
+  ctx.setLineDash([]);
+}
+
+function updateUI() {
+  undoBtn.disabled = rects.length === 0;
+  clearBtn.disabled = rects.length === 0;
+  countBadge.textContent = rects.length > 0 ? `${rects.length} 箇所マスク済み` : '';
+}
+</script>
+</body>
+</html>

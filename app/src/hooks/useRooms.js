@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase.js'
+import { loadRoomOverrides } from '../utils/roomMasterStorage.js'
 
 // occupancy = default number of guests per room type (drives amenity defaults)
 export const ROOM_TYPE_CONFIG = {
@@ -47,6 +48,15 @@ function buildRoom(floor, num, type, extra = {}) {
     amenities: null, updated_at: new Date().toISOString(), updated_by: null,
     ...extra,
   }
+}
+
+function applyOverrides(rooms) {
+  const overrides = loadRoomOverrides()
+  if (Object.keys(overrides).length === 0) return rooms
+  return rooms.map(r => overrides[r.room_number]
+    ? { ...r, room_type: overrides[r.room_number] }
+    : r
+  )
 }
 
 function generateFallbackRooms() {
@@ -108,7 +118,7 @@ export function useRooms() {
 
   useEffect(() => {
     if (!USE_SUPABASE) {
-      setRooms(generateFallbackRooms())
+      setRooms(applyOverrides(generateFallbackRooms()))
       setLoading(false)
       return
     }
@@ -128,7 +138,7 @@ export function useRooms() {
         return
       }
 
-      setRooms(mergeRoomData(roomsData, statusData))
+      setRooms(applyOverrides(mergeRoomData(roomsData, statusData)))
       setLoading(false)
     }
 
