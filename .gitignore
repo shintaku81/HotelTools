@@ -1,0 +1,21 @@
+# Node
+app/node_modules/
+app/dist/
+app/.env
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Logs
+*.log
+
+# Claude
+.claude-vp/
+
+# Large files
+docs/*.xlsm
+docs/*.xlsx
+*.pdf
+*.pptx
+slides_output/
