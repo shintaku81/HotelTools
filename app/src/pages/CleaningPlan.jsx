@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
-import { parseExcel, autoAssign } from '../utils/cleaningLogic.js'
+import { parseExcel, autoAssign, analyzeAssignment } from '../utils/cleaningLogic.js'
 import { loadStaff } from '../config/staff.js'
 
 function TypeBadge({ type }) {
@@ -28,6 +28,7 @@ export default function CleaningPlan({ onBack }) {
   const [rooms, setRooms]           = useState(null)
   const [staffList, setStaffList]   = useState(() => loadStaff())
   const [assignments, setAssignments] = useState(null)  // { name: { rooms, points } }
+  const [warnings, setWarnings]     = useState([])
   const [dragOver, setDragOver]     = useState(false)
   const [fileName, setFileName]     = useState('')
   const [error, setError]           = useState('')
@@ -45,8 +46,10 @@ export default function CleaningPlan({ onBack }) {
     reader.onload = (e) => {
       try {
         const data = parseExcel(e.target.result)
+        const asgn = autoAssign(data, staffList)
         setRooms(data)
-        setAssignments(autoAssign(data, staffList))
+        setAssignments(asgn)
+        setWarnings(analyzeAssignment(data, staffList, asgn))
       } catch (err) {
         setError('ファイルの読み込みに失敗しました。XLS/XLSM形式か確認してください。')
         console.error(err)
@@ -65,13 +68,16 @@ export default function CleaningPlan({ onBack }) {
   function handleClear() {
     setRooms(null)
     setAssignments(null)
+    setWarnings([])
     setFileName('')
     setError('')
   }
 
   function reAssign() {
     if (!rooms) return
-    setAssignments(autoAssign(rooms, staffList))
+    const asgn = autoAssign(rooms, staffList)
+    setAssignments(asgn)
+    setWarnings(analyzeAssignment(rooms, staffList, asgn))
   }
 
   function toggleStaff(idx) {
@@ -144,6 +150,26 @@ export default function CleaningPlan({ onBack }) {
               )
             })}
           </div>
+        </div>
+      )}
+
+      {/* ── Assignment warnings ── */}
+      {warnings.length > 0 && (
+        <div className="px-4 pt-3 space-y-2 bg-white border-b border-slate-200 pb-3">
+          {warnings.map((w, i) => {
+            const styles = {
+              error: 'bg-red-50 border-red-200 text-red-700',
+              warn:  'bg-amber-50 border-amber-200 text-amber-800',
+              info:  'bg-blue-50 border-blue-200 text-blue-700',
+            }
+            const icons = { error: '⚠️', warn: '⚠️', info: 'ℹ️' }
+            return (
+              <div key={i} className={`text-xs rounded-xl border px-3 py-2 flex gap-2 ${styles[w.level]}`}>
+                <span>{icons[w.level]}</span>
+                <span>{w.message}</span>
+              </div>
+            )
+          })}
         </div>
       )}
 

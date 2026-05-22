@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase.js'
 
+// occupancy = default number of guests per room type (drives amenity defaults)
 export const ROOM_TYPE_CONFIG = {
-  S:  { label: 'S',  weight: 1.0,  description: 'シングル' },
-  W:  { label: 'W',  weight: 1.5,  description: 'ダブル/ツイン幅広' },
-  T:  { label: 'T',  weight: 1.5,  description: 'ツイン' },
-  TR: { label: 'TR', weight: 2.0,  description: 'トリプル' },
+  S:  { label: 'S',  weight: 1.0,  occupancy: 1, description: 'シングル' },
+  SD: { label: 'SD', weight: 1.0,  occupancy: 2, description: 'セミダブル' },
+  W:  { label: 'W',  weight: 1.0,  occupancy: 2, description: 'ダブル/ワイド' },
+  T:  { label: 'T',  weight: 1.2,  occupancy: 2, description: 'ツイン' },
+  TR: { label: 'TR', weight: 2.0,  occupancy: 3, description: 'トリプル' },
 }
 
 export const AMENITY_ITEMS = [
@@ -40,7 +42,7 @@ const FLOOR_ROOMS = {
 function buildRoom(floor, num, type, extra = {}) {
   return {
     id: String(num), floor, room_number: String(num), room_type: type,
-    status: 'available', cleaning_type: null, assigned_staff: null,
+    status: 'stay', cleaning_type: null, assigned_staff: null,
     checkout_at: null, cleaning_start_at: null, cleaned_at: null,
     amenities: null, updated_at: new Date().toISOString(), updated_by: null,
     ...extra,

@@ -13,6 +13,9 @@ function relativeTime(dateStr) {
 }
 
 function getStatusConfig(room) {
+  if (room.status === 'stay') {
+    return { bg: 'bg-slate-50', border: 'border-slate-200', text: 'text-slate-400', dot: 'bg-slate-300', label: '在室中' }
+  }
   if (room.status === 'available') {
     return { bg: 'bg-green-50', border: 'border-green-300', text: 'text-green-700', dot: 'bg-green-500', label: '清掃済み' }
   }
@@ -21,6 +24,9 @@ function getStatusConfig(room) {
   }
   if (room.status === 'checkout' && room.cleaning_type === 'eco') {
     return { bg: 'bg-orange-50', border: 'border-orange-400', text: 'text-orange-700', dot: 'bg-orange-400', label: 'エコ待ち' }
+  }
+  if (room.status === 'checkout') {
+    return { bg: 'bg-yellow-50', border: 'border-yellow-400', text: 'text-yellow-700', dot: 'bg-yellow-400', label: '清掃待ち' }
   }
   if (room.status === 'cleaning') {
     return { bg: 'bg-amber-50', border: 'border-amber-400', text: 'text-amber-700', dot: 'bg-amber-400', label: '清掃中' }
@@ -31,10 +37,15 @@ function getStatusConfig(room) {
   return { bg: 'bg-gray-50', border: 'border-gray-300', text: 'text-gray-600', dot: 'bg-gray-400', label: '不明' }
 }
 
-function buildDefaultAmenities(cleaningType) {
+function buildDefaultAmenities(cleaningType, roomType) {
+  const cfg = ROOM_TYPE_CONFIG[roomType] ?? ROOM_TYPE_CONFIG.S
+  const occ = cfg.occupancy
   const counts = {}
   AMENITY_ITEMS.forEach(item => {
-    counts[item.key] = cleaningType === 'eco' ? item.defaultEco : item.defaultCo
+    const base = cleaningType === 'eco' ? item.defaultEco : item.defaultCo
+    // towel-type items scale with occupancy; consumables (shampoo etc) already per-person
+    const scales = ['bath_towel', 'face_towel', 'wash_cloth', 'bath_mat', 'amenity_set']
+    counts[item.key] = base > 0 && scales.includes(item.key) ? base * occ : base
   })
   return counts
 }
@@ -334,6 +345,7 @@ function RoomDetailModal({ room, user, onClose, onAction, onOpenAmenity, loading
 // ─── Stats Bar ─────────────────────────────────────────────────────────────────
 
 function StatsBar({ rooms }) {
+  const stay = rooms.filter(r => r.status === 'stay').length
   const waiting = rooms.filter(r => r.status === 'checkout').length
   const cleaning = rooms.filter(r => r.status === 'cleaning').length
   const cleaned = rooms.filter(r => r.status === 'cleaned').length
@@ -341,6 +353,7 @@ function StatsBar({ rooms }) {
 
   return (
     <div className="bg-white border-b border-slate-200 px-4 py-2 flex gap-2 overflow-x-auto">
+      <StatBadge color="slate" label="在室中" count={stay} />
       <StatBadge color="red" label="清掃待ち" count={waiting} />
       <StatBadge color="amber" label="清掃中" count={cleaning} />
       <StatBadge color="blue" label="確認待ち" count={cleaned} />
@@ -351,6 +364,7 @@ function StatsBar({ rooms }) {
 
 function StatBadge({ color, label, count }) {
   const colorMap = {
+    slate: 'bg-slate-100 text-slate-500',
     red:   'bg-red-100 text-red-700',
     amber: 'bg-amber-100 text-amber-700',
     blue:  'bg-blue-100 text-blue-700',
@@ -368,7 +382,7 @@ function StatBadge({ color, label, count }) {
 function FloorTabs({ activeFloor, onChange, rooms }) {
   function nonAvailableCount(floor) {
     if (floor === 'all' || floor === 'progress') return 0
-    return rooms.filter(r => r.floor === floor && r.status !== 'available').length
+    return rooms.filter(r => r.floor === floor && ['checkout', 'cleaning', 'cleaned'].includes(r.status)).length
   }
 
   const tabs = [
@@ -593,7 +607,7 @@ export default function Floors({ user, onLogout, onBack }) {
 
   function openAmenityModal() {
     if (!selectedRoom) return
-    const defaults = buildDefaultAmenities(selectedRoom.cleaning_type)
+    const defaults = buildDefaultAmenities(selectedRoom.cleaning_type, selectedRoom.room_type)
     setAmenityCounts(defaults)
     setModalType('amenity')
   }
