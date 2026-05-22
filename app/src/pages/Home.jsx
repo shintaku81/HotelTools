@@ -49,9 +49,9 @@ export default function Home({ user, onNavigate, onLogout }) {
           </div>
           <button
             onClick={onLogout}
-            className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-xs font-semibold active:bg-slate-200 touch-manipulation border border-slate-200"
+            className="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-xs font-semibold active:bg-red-100 touch-manipulation border border-red-200"
           >
-            変更
+            ログアウト
           </button>
         </div>
       </header>

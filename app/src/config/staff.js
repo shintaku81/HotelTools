@@ -1,8 +1,8 @@
 // Default staff configuration – stored in localStorage as 'hotel_staff_config'
 export const DEFAULT_STAFF = [
-  { name: 'ゆうき', target: 11, active: true },
-  { name: '戸田',   target: 10, active: true },
-  { name: '森山',   target: 10, active: true },
+  { name: '結城', target: 11, active: true },
+  { name: '戸田', target: 10, active: true },
+  { name: '森山', target: 10, active: true },
 ]
 
 export function loadStaff() {
