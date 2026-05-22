@@ -1,4 +1,6 @@
-export default function Home({ user, onNavigate, onLogout }) {
+import { FONT_SIZES, applyFontSize } from '../utils/fontSizeStorage.js'
+
+export default function Home({ user, onNavigate, onLogout, fontSize = 'medium', onFontSize }) {
   const { name, role } = user
   const isLeaderOrFront = role === 'leader' || role === 'front'
 
@@ -63,12 +65,29 @@ export default function Home({ user, onNavigate, onLogout }) {
             <p className="text-lg font-bold text-slate-900">清掃管理システム</p>
             <p className="text-sm text-slate-500">{name}さん でログイン中</p>
           </div>
-          <button
-            onClick={onLogout}
-            className="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-xs font-semibold active:bg-red-100 touch-manipulation border border-red-200"
-          >
-            ログアウト
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Font size switcher */}
+            <div className="flex rounded-lg border border-slate-200 overflow-hidden">
+              {Object.entries(FONT_SIZES).map(([key, { label }]) => (
+                <button
+                  key={key}
+                  onClick={() => { applyFontSize(key); onFontSize?.(key) }}
+                  className={`px-2.5 py-1.5 text-xs font-bold touch-manipulation transition-colors
+                    ${fontSize === key
+                      ? 'bg-slate-700 text-white'
+                      : 'bg-white text-slate-500 active:bg-slate-100'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={onLogout}
+              className="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-xs font-semibold active:bg-red-100 touch-manipulation border border-red-200"
+            >
+              ログアウト
+            </button>
+          </div>
         </div>
       </header>
 

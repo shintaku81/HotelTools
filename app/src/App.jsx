@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { loadFontSize, applyFontSize } from './utils/fontSizeStorage.js'
 import Login from './pages/Login.jsx'
 import Home from './pages/Home.jsx'
 import Floors from './pages/Floors.jsx'
@@ -23,11 +24,15 @@ export default function App() {
   const mode = detectMode()   // 'staff' | 'admin'
   const storageKey = mode === 'admin' ? STORAGE_KEY_ADMIN : STORAGE_KEY_STAFF
 
-  const [user, setUser]     = useState(null)
-  const [screen, setScreen] = useState('home')
+  const [user, setUser]         = useState(null)
+  const [screen, setScreen]     = useState('home')
   const [planDate, setPlanDate] = useState(null)
+  const [fontSize, setFontSize] = useState(loadFontSize)
+
+  useEffect(() => { applyFontSize(fontSize) }, [fontSize])
 
   useEffect(() => {
+    applyFontSize(loadFontSize())  // restore on mount
     const saved = localStorage.getItem(storageKey)
     if (saved) {
       try { setUser(JSON.parse(saved)) } catch {}
@@ -60,5 +65,5 @@ export default function App() {
   if (screen === 'staff')       return <Staff onBack={() => setScreen('home')} />
   if (screen === 'roommaster')  return <RoomMaster onBack={() => setScreen('home')} />
 
-  return <Home user={user} onNavigate={setScreen} onLogout={handleLogout} mode={mode} />
+  return <Home user={user} onNavigate={setScreen} onLogout={handleLogout} mode={mode} fontSize={fontSize} onFontSize={setFontSize} />
 }
