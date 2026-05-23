@@ -20,13 +20,15 @@ export default function Staff({ onBack }) {
   function startEdit(idx) {
     setEditIdx(idx)
     setEditName(staffList[idx].name)
-    setEditTarget(String(staffList[idx].target))
+    setEditTarget(staffList[idx].target === null ? '' : String(staffList[idx].target))
   }
 
   function commitEdit() {
     if (!editName.trim()) { setEditIdx(null); return }
+    const trimmed = editTarget.trim()
+    const t = trimmed === '' ? null : Math.max(1, parseInt(trimmed) || 1)
     setStaffList(prev => prev.map((s, i) =>
-      i === editIdx ? { ...s, name: editName.trim(), target: Math.max(1, parseInt(editTarget) || 10) } : s
+      i === editIdx ? { ...s, name: editName.trim(), target: t } : s
     ))
     setEditIdx(null)
   }
@@ -41,18 +43,31 @@ export default function Staff({ onBack }) {
 
   function addStaff() {
     if (!newName.trim()) return
-    setStaffList(prev => [...prev, { name: newName.trim(), target: Math.max(1, parseInt(newTarget) || 10), active: true }])
+    const trimmed = newTarget.trim()
+    const t = trimmed === '' ? null : Math.max(1, parseInt(trimmed) || 1)
+    setStaffList(prev => [...prev, { name: newName.trim(), target: t, active: true, retired: false }])
     setNewName('')
-    setNewTarget('11')
+    setNewTarget('')
     setShowAdd(false)
+  }
+
+  function retireStaff(idx) {
+    setStaffList(prev => prev.map((s, i) => i === idx ? { ...s, retired: true, active: false } : s))
+  }
+
+  function unretireStaff(idx) {
+    setStaffList(prev => prev.map((s, i) => i === idx ? { ...s, retired: false } : s))
   }
 
   function resetToDefault() {
     setStaffList(DEFAULT_STAFF.map(s => ({ ...s })))
   }
 
-  const activeCount = staffList.filter(s => s.active).length
-  const totalTarget = staffList.filter(s => s.active).reduce((sum, s) => sum + s.target, 0)
+  const activeStaff  = staffList.filter(s => !s.retired)
+  const retiredStaff = staffList.filter(s => s.retired)
+  const activeCount  = activeStaff.filter(s => s.active).length
+  const limitedStaff = activeStaff.filter(s => s.active && s.target !== null)
+  const totalTarget  = limitedStaff.reduce((sum, s) => sum + s.target, 0)
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
@@ -82,8 +97,10 @@ export default function Staff({ onBack }) {
               <div className="text-xs text-slate-500">出勤予定</div>
             </div>
             <div className="flex-1">
-              <div className="text-2xl font-bold text-slate-800">{totalTarget}</div>
-              <div className="text-xs text-slate-500">合計担当室数</div>
+              <div className="text-2xl font-bold text-slate-800">
+                {limitedStaff.length > 0 ? totalTarget : '∞'}
+              </div>
+              <div className="text-xs text-slate-500">上限合計 (pt)</div>
             </div>
           </div>
         </div>
@@ -113,76 +130,122 @@ export default function Staff({ onBack }) {
                 type="number"
                 inputMode="numeric"
                 min="1"
-                max="20"
+                max="99"
                 value={newTarget}
+                placeholder="∞"
                 onChange={e => setNewTarget(e.target.value)}
-                className="w-16 border border-slate-300 rounded-lg px-2 py-2 text-sm text-center focus:outline-none focus:border-indigo-400"
+                className="w-16 border border-slate-300 rounded-lg px-2 py-2 text-sm text-center focus:outline-none focus:border-indigo-400 placeholder:text-slate-400"
               />
-              <span className="text-xs text-slate-500">室</span>
+              <span className="text-xs text-slate-500">pt</span>
               <button onClick={addStaff} className="px-3 py-2 rounded-lg bg-indigo-600 text-white text-xs font-bold touch-manipulation">追加</button>
             </div>
           )}
 
           <div className="divide-y divide-slate-100">
-            {staffList.map((staff, idx) => (
-              <div key={idx} className={`flex items-center px-4 py-3 gap-3 ${!staff.active ? 'opacity-50' : ''}`}>
+            {activeStaff.map((staff, idx) => {
+              const realIdx = staffList.indexOf(staff)
+              return (
+                <div key={realIdx} className={`flex items-center px-4 py-3 gap-3 ${!staff.active ? 'opacity-50' : ''}`}>
+                  {editIdx === realIdx ? (
+                    <>
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={e => setEditName(e.target.value)}
+                        className="flex-1 border border-blue-300 rounded-lg px-2 py-1 text-sm focus:outline-none"
+                        autoFocus
+                      />
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min="1"
+                        max="99"
+                        value={editTarget}
+                        placeholder="∞"
+                        onChange={e => setEditTarget(e.target.value)}
+                        className="w-16 border border-blue-300 rounded-lg px-2 py-1 text-sm text-center focus:outline-none placeholder:text-slate-400"
+                      />
+                      <span className="text-xs text-slate-500">pt</span>
+                      <button onClick={commitEdit} className="px-2 py-1 rounded-lg bg-blue-600 text-white text-xs font-bold touch-manipulation">OK</button>
+                    </>
+                  ) : (
+                    <>
+                      <div
+                        className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold cursor-pointer touch-manipulation
+                          ${staff.active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'}`}
+                        onClick={() => toggleActive(realIdx)}
+                      >
+                        {staff.active ? '✓' : '—'}
+                      </div>
+                      <span className="flex-1 text-sm font-semibold text-slate-800">{staff.name}</span>
+                      <span className="text-sm font-bold text-indigo-700">
+                        {staff.target === null ? '∞' : `${staff.target}pt`}
+                      </span>
+                      <button
+                        onClick={() => startEdit(realIdx)}
+                        className="text-xs text-slate-400 px-2 py-1 rounded-lg active:bg-slate-100 touch-manipulation"
+                      >
+                        編集
+                      </button>
+                      <button
+                        onClick={() => retireStaff(realIdx)}
+                        className="text-xs text-amber-600 px-2 py-1 rounded-lg border border-amber-200 active:bg-amber-50 touch-manipulation"
+                        title="無効化（退職）"
+                      >
+                        無効化
+                      </button>
+                      <button
+                        onClick={() => removeStaff(realIdx)}
+                        className="text-slate-300 text-base px-1 active:text-red-500 touch-manipulation"
+                        title="完全削除"
+                      >
+                        ×
+                      </button>
+                    </>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
 
-                {editIdx === idx ? (
-                  <>
-                    <input
-                      type="text"
-                      value={editName}
-                      onChange={e => setEditName(e.target.value)}
-                      className="flex-1 border border-blue-300 rounded-lg px-2 py-1 text-sm focus:outline-none"
-                      autoFocus
-                    />
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      min="1"
-                      max="20"
-                      value={editTarget}
-                      onChange={e => setEditTarget(e.target.value)}
-                      className="w-14 border border-blue-300 rounded-lg px-2 py-1 text-sm text-center focus:outline-none"
-                    />
-                    <span className="text-xs text-slate-500">室</span>
-                    <button onClick={commitEdit} className="px-2 py-1 rounded-lg bg-blue-600 text-white text-xs font-bold touch-manipulation">OK</button>
-                  </>
-                ) : (
-                  <>
-                    <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold cursor-pointer touch-manipulation
-                        ${staff.active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'}`}
-                      onClick={() => toggleActive(idx)}
-                    >
-                      {staff.active ? '✓' : '—'}
-                    </div>
-                    <span className="flex-1 text-sm font-semibold text-slate-800">{staff.name}</span>
-                    <span className="text-sm font-bold text-indigo-700">{staff.target}室</span>
+        {/* Retired staff */}
+        {retiredStaff.length > 0 && (
+          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-100">
+              <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider">退職済みスタッフ</h2>
+            </div>
+            <div className="divide-y divide-slate-100">
+              {retiredStaff.map((staff) => {
+                const realIdx = staffList.indexOf(staff)
+                return (
+                  <div key={realIdx} className="flex items-center px-4 py-3 gap-3 opacity-50">
+                    <span className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 text-xs font-bold">休</span>
+                    <span className="flex-1 text-sm text-slate-500 line-through">{staff.name}</span>
                     <button
-                      onClick={() => startEdit(idx)}
-                      className="text-xs text-slate-400 px-2 py-1 rounded-lg active:bg-slate-100 touch-manipulation"
+                      onClick={() => unretireStaff(realIdx)}
+                      className="text-xs text-indigo-600 px-2 py-1 rounded-lg border border-indigo-200 active:bg-indigo-50 touch-manipulation"
                     >
-                      編集
+                      復帰
                     </button>
                     <button
-                      onClick={() => removeStaff(idx)}
+                      onClick={() => removeStaff(realIdx)}
                       className="text-slate-300 text-base px-1 active:text-red-500 touch-manipulation"
                     >
                       ×
                     </button>
-                  </>
-                )}
-              </div>
-            ))}
+                  </div>
+                )
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Note */}
         <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
           <p className="text-xs text-amber-700">
             <span className="font-bold">※ 出勤ON/OFF</span>は各スタッフ名の左のアイコンをタップ。
-            清掃計画の割り当て時に出勤中のスタッフのみ対象になります。
+            上限ptは空欄にすると無制限（∞）。無効化すると履歴に残したまま非表示になります。
           </p>
         </div>
 

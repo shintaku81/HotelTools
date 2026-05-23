@@ -78,8 +78,6 @@ export function autoAssign(allRooms, staffList) {
   if (activeStaff.length === 0) return {}
 
   const toClean = allRooms.filter(r => r.cleaningType !== null)
-
-  // Budget (points) per staff
   const budgets = activeStaff.map(s => ({ ...s, used: 0.0, rooms: [] }))
 
   let staffIdx = 0
@@ -89,12 +87,13 @@ export function autoAssign(allRooms, staffList) {
     current.rooms.push(room)
     current.used += room.weight
 
-    // Move to next staff when budget exceeded
-    if (current.used >= current.target) staffIdx++
+    // null target = unlimited; only advance when limit is set and exceeded
+    if (current.target !== null && current.used >= current.target) staffIdx++
   }
 
-  // Any overflow → last active staff
-  const overflow = toClean.slice(budgets.reduce((s, b) => s + b.rooms.length, 0))
+  // Overflow beyond all limited staff → last staff absorbs (only relevant when all have limits)
+  const totalAssigned = budgets.reduce((s, b) => s + b.rooms.length, 0)
+  const overflow = toClean.slice(totalAssigned)
   if (overflow.length > 0 && budgets.length > 0) {
     const last = budgets[budgets.length - 1]
     overflow.forEach(r => { last.rooms.push(r); last.used += r.weight })
@@ -108,7 +107,7 @@ export function autoAssign(allRooms, staffList) {
 // ─── Assignment analysis / alerts ────────────────────────────────────────────
 export function analyzeAssignment(allRooms, staffList, assignments) {
   const activeStaff = staffList.filter(s => s.active)
-  const totalCapacity = activeStaff.reduce((s, st) => s + st.target, 0)
+  const hasUnlimited = activeStaff.some(s => s.target === null)
   const toClean = allRooms.filter(r => r.cleaningType !== null)
   const totalPoints = toClean.reduce((s, r) => s + r.weight, 0)
 
@@ -123,21 +122,25 @@ export function analyzeAssignment(allRooms, staffList, assignments) {
   if (unassigned.length > 0) {
     warnings.push({
       level: 'error',
-      message: `${unassigned.length}室が割り当て超過のため未割り当てです（${unassigned.map(r => r.room).join('・')}）`,
+      message: `${unassigned.length}室が未割り当てです（${unassigned.map(r => r.room).join('・')}）`,
     })
   }
 
-  if (totalPoints > totalCapacity + 0.01) {
-    const over = (totalPoints - totalCapacity).toFixed(1)
-    warnings.push({
-      level: 'warn',
-      message: `清掃ポイント合計（${totalPoints.toFixed(1)}pt）がスタッフ上限合計（${totalCapacity}pt）を${over}pt超過しています`,
-    })
-  } else if (activeStaff.length > 0 && totalPoints < totalCapacity * 0.6) {
-    warnings.push({
-      level: 'info',
-      message: `清掃室数がスタッフ上限の${Math.round((totalPoints / totalCapacity) * 100)}%です。出勤スタッフ数の調整を検討してください`,
-    })
+  // Capacity warnings only apply when all active staff have limits
+  if (!hasUnlimited) {
+    const totalCapacity = activeStaff.reduce((s, st) => s + st.target, 0)
+    if (totalPoints > totalCapacity + 0.01) {
+      const over = (totalPoints - totalCapacity).toFixed(1)
+      warnings.push({
+        level: 'warn',
+        message: `清掃ポイント合計（${totalPoints.toFixed(1)}pt）がスタッフ上限合計（${totalCapacity}pt）を${over}pt超過しています`,
+      })
+    } else if (activeStaff.length > 0 && totalCapacity > 0 && totalPoints < totalCapacity * 0.6) {
+      warnings.push({
+        level: 'info',
+        message: `清掃室数がスタッフ上限の${Math.round((totalPoints / totalCapacity) * 100)}%です。出勤スタッフ数の調整を検討してください`,
+      })
+    }
   }
 
   return warnings

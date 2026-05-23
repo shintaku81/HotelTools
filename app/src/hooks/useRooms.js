@@ -45,7 +45,7 @@ function buildRoom(floor, num, type, extra = {}) {
     id: String(num), floor, room_number: String(num), room_type: type,
     status: 'stay', cleaning_type: null, assigned_staff: null,
     checkout_at: null, cleaning_start_at: null, cleaned_at: null,
-    amenities: null, updated_at: new Date().toISOString(), updated_by: null,
+    amenities: null, dnd: false, updated_at: new Date().toISOString(), updated_by: null,
     ...extra,
   }
 }
