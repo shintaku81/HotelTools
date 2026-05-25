@@ -379,7 +379,7 @@ function FilterSelect({ filterMode, onChange, userRole, userName }) {
       className="text-xs font-semibold border border-slate-200 rounded-lg px-2 py-1.5 bg-white text-slate-700 touch-manipulation focus:outline-none focus:border-indigo-400"
     >
       <option value="all">全室</option>
-      <option value="mine">自分の担当</option>
+      <option value="mine">{userName}（自分）</option>
       {userRole === 'leader' && staff.map(s => (
         s.name !== userName && <option key={s.name} value={s.name}>{s.name}</option>
       ))}
