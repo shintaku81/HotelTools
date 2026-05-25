@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRooms, AMENITY_ITEMS, ROOM_TYPE_CONFIG } from '../hooks/useRooms.js'
+import { loadStaff } from '../config/staff.js'
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
@@ -367,6 +368,25 @@ function RoomDetailModal({ room, user, onClose, onAction, onOpenAmenity, loading
 
 // ─── Stats Bar ─────────────────────────────────────────────────────────────────
 
+// ─── Filter Select ─────────────────────────────────────────────────────────────
+
+function FilterSelect({ filterMode, onChange, userRole, userName }) {
+  const staff = loadStaff().filter(s => s.active && !s.retired)
+  return (
+    <select
+      value={filterMode}
+      onChange={e => onChange(e.target.value)}
+      className="text-xs font-semibold border border-slate-200 rounded-lg px-2 py-1.5 bg-white text-slate-700 touch-manipulation focus:outline-none focus:border-indigo-400"
+    >
+      <option value="all">全室</option>
+      <option value="mine">自分の担当</option>
+      {userRole === 'leader' && staff.map(s => (
+        s.name !== userName && <option key={s.name} value={s.name}>{s.name}</option>
+      ))}
+    </select>
+  )
+}
+
 function StatsBar({ rooms }) {
   const stay = rooms.filter(r => r.status === 'stay').length
   const coPending = rooms.filter(r => r.status === 'checkout_pending').length
@@ -601,7 +621,7 @@ function ProgressDashboard({ rooms }) {
 // ─── Main Component ─────────────────────────────────────────────────────────────
 
 export default function Floors({ user, onLogout, onBack }) {
-  const { rooms, loading, updateRoom, resetAllRooms } = useRooms()
+  const { rooms, loading, updateRoom, resetAllRooms, bulkAssignRooms } = useRooms()
 
   const [activeFloor, setActiveFloor] = useState('all')
   const [selectedRoom, setSelectedRoom] = useState(null)
@@ -609,6 +629,35 @@ export default function Floors({ user, onLogout, onBack }) {
   const [amenityCounts, setAmenityCounts] = useState({})
   const [actionLoading, setActionLoading] = useState(false)
   const [toast, setToast] = useState(null)
+  const [filterMode, setFilterMode] = useState(user.role === 'cleaner' ? 'mine' : 'all')
+
+  async function handleAutoAssign() {
+    const activeStaff = loadStaff().filter(s => s.active && !s.retired)
+    if (!activeStaff.length) { showToast('出勤スタッフがいません'); return }
+
+    const targets = rooms.filter(r => r.status === 'checkout' && !r.assigned_staff)
+    if (!targets.length) { showToast('割り当て可能な清掃待ち部屋がありません'); return }
+
+    // weighted round-robin: target null → 他の平均
+    const withTarget = activeStaff.filter(s => s.target !== null)
+    const avg = withTarget.length > 0
+      ? withTarget.reduce((s, st) => s + st.target, 0) / withTarget.length
+      : 10
+    const staffState = activeStaff.map(s => ({ name: s.name, weight: s.target ?? avg, assigned: 0 }))
+
+    const assignments = targets.map(room => {
+      const best = staffState.reduce((a, b) =>
+        (a.assigned / a.weight) <= (b.assigned / b.weight) ? a : b
+      )
+      best.assigned++
+      return { id: room.id, staff: best.name }
+    })
+
+    setActionLoading(true)
+    const { error } = await bulkAssignRooms(assignments)
+    setActionLoading(false)
+    if (!error) showToast(`${targets.length}室を${activeStaff.length}名に自動割り当てしました`)
+  }
 
   async function handleResetAllRooms() {
     if (!window.confirm('全室を「CO待ち（チェックアウト予定）」状態にリセットします。\nよろしいですか？')) return
@@ -711,14 +760,21 @@ export default function Floors({ user, onLogout, onBack }) {
     ? rooms.find(r => r.id === selectedRoom.id) || selectedRoom
     : null
 
+  // 担当フィルター（'all' / 'mine' / スタッフ名）
+  const filteredRooms = filterMode === 'all'
+    ? rooms
+    : filterMode === 'mine'
+      ? rooms.filter(r => r.assigned_staff === user.name)
+      : rooms.filter(r => r.assigned_staff === filterMode)
+
   // Filtered rooms for display
   const displayRooms = activeFloor === 'all'
-    ? rooms
-    : rooms.filter(r => r.floor === activeFloor)
+    ? filteredRooms
+    : filteredRooms.filter(r => r.floor === activeFloor)
 
   const floorGroups = FLOORS.map(f => ({
     floor: f,
-    rooms: rooms.filter(r => r.floor === f),
+    rooms: filteredRooms.filter(r => r.floor === f),
   }))
 
   if (loading) {
@@ -741,24 +797,49 @@ export default function Floors({ user, onLogout, onBack }) {
           <p className="text-xs text-slate-400 leading-tight">ホテルパコジュニア 北見</p>
           <p className="text-sm font-bold text-slate-900 leading-tight">通常清掃</p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="text-right">
+        <div className="flex items-center gap-1.5">
+          <div className="text-right mr-0.5">
             <p className="text-xs text-slate-400 leading-tight">{RoleLabel(user.role)}</p>
             <p className="text-sm text-slate-700 font-medium leading-tight">{user.name}</p>
           </div>
+
+          {/* 担当フィルター（cleaner/leader） */}
+          {(user.role === 'cleaner' || user.role === 'leader') && (
+            <FilterSelect
+              filterMode={filterMode}
+              onChange={setFilterMode}
+              userRole={user.role}
+              userName={user.name}
+            />
+          )}
+
+          {/* 自動割り当て（leader） */}
+          {user.role === 'leader' && (
+            <button
+              onClick={handleAutoAssign}
+              disabled={actionLoading}
+              className="px-2 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-semibold active:bg-indigo-100 touch-manipulation border border-indigo-200 disabled:opacity-50"
+              title="清掃待ち部屋をスタッフに自動割り当て"
+            >
+              自動割り当て
+            </button>
+          )}
+
+          {/* 日次初期化（leader） */}
           {user.role === 'leader' && (
             <button
               onClick={handleResetAllRooms}
               disabled={actionLoading}
-              className="ml-1 px-2 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-xs font-semibold active:bg-amber-100 touch-manipulation border border-amber-200 disabled:opacity-50"
+              className="px-2 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-xs font-semibold active:bg-amber-100 touch-manipulation border border-amber-200 disabled:opacity-50"
               title="全室をCO待ちにリセット（日次初期化）"
             >
               日次初期化
             </button>
           )}
+
           <button
             onClick={onLogout}
-            className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-xs font-semibold active:bg-slate-200 touch-manipulation border border-slate-200"
+            className="px-2 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-xs font-semibold active:bg-slate-200 touch-manipulation border border-slate-200"
           >
             ログアウト
           </button>
@@ -769,7 +850,7 @@ export default function Floors({ user, onLogout, onBack }) {
       <StatsBar rooms={rooms} />
 
       {/* Floor Tabs */}
-      <FloorTabs activeFloor={activeFloor} onChange={setActiveFloor} rooms={rooms} />
+      <FloorTabs activeFloor={activeFloor} onChange={setActiveFloor} rooms={filteredRooms} />
 
       {/* Room Content */}
       <div className="flex-1 overflow-y-auto">

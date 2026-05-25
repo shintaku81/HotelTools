@@ -245,5 +245,38 @@ export function useRooms() {
     return { error: null }
   }, [rooms])
 
-  return { rooms, loading, updateRoom, resetAllRooms }
+  // assignments: [{id: '201', staff: '田中'}, ...]
+  const bulkAssignRooms = useCallback(async (assignments) => {
+    const now = new Date().toISOString()
+
+    if (!USE_SUPABASE) {
+      setRooms(prev => prev.map(r => {
+        const a = assignments.find(x => x.id === r.id)
+        return a ? { ...r, assigned_staff: a.staff, updated_at: now } : r
+      }))
+      return { error: null }
+    }
+
+    // Supabase: group by staff for efficient batch updates
+    const byStaff = {}
+    assignments.forEach(a => {
+      if (!byStaff[a.staff]) byStaff[a.staff] = []
+      byStaff[a.staff].push(a.id)
+    })
+    for (const [staff, ids] of Object.entries(byStaff)) {
+      const { error } = await supabase
+        .from('room_status')
+        .update({ assigned_staff: staff, updated_at: now })
+        .in('id', ids)
+      if (error) return { error }
+    }
+
+    setRooms(prev => prev.map(r => {
+      const a = assignments.find(x => x.id === r.id)
+      return a ? { ...r, assigned_staff: a.staff, updated_at: now } : r
+    }))
+    return { error: null }
+  }, [])
+
+  return { rooms, loading, updateRoom, resetAllRooms, bulkAssignRooms }
 }
