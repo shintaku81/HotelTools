@@ -20,10 +20,10 @@ function getStatusConfig(room) {
     return { bg: 'bg-green-50', border: 'border-green-300', text: 'text-green-700', dot: 'bg-green-500', label: '清掃済み' }
   }
   if (room.status === 'checkout' && room.cleaning_type === 'co') {
-    return { bg: 'bg-red-50', border: 'border-red-500', text: 'text-red-700', dot: 'bg-red-500', label: 'CO待ち' }
+    return { bg: 'bg-red-50', border: 'border-red-500', text: 'text-red-700', dot: 'bg-red-500', label: '清掃待ち' }
   }
   if (room.status === 'checkout' && room.cleaning_type === 'eco') {
-    return { bg: 'bg-orange-50', border: 'border-orange-400', text: 'text-orange-700', dot: 'bg-orange-400', label: 'エコ待ち' }
+    return { bg: 'bg-orange-50', border: 'border-orange-400', text: 'text-orange-700', dot: 'bg-orange-400', label: '清掃待ち' }
   }
   if (room.status === 'checkout') {
     return { bg: 'bg-yellow-50', border: 'border-yellow-400', text: 'text-yellow-700', dot: 'bg-yellow-400', label: '清掃待ち' }
@@ -585,11 +585,11 @@ export default function Floors({ user, onLogout, onBack }) {
   const [toast, setToast] = useState(null)
 
   async function handleResetAllRooms() {
-    if (!window.confirm('全室を「CO清掃待ち」状態にリセットします。\nよろしいですか？')) return
+    if (!window.confirm('全室を「清掃待ち」状態にリセットします。\nよろしいですか？')) return
     setActionLoading(true)
     const { error } = await resetAllRooms()
     setActionLoading(false)
-    if (!error) showToast('全室をCO清掃待ちにリセットしました')
+    if (!error) showToast('全室を清掃待ちにリセットしました')
   }
 
   function showToast(msg) {
@@ -725,7 +725,7 @@ export default function Floors({ user, onLogout, onBack }) {
               onClick={handleResetAllRooms}
               disabled={actionLoading}
               className="ml-1 px-2 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-xs font-semibold active:bg-amber-100 touch-manipulation border border-amber-200 disabled:opacity-50"
-              title="全室をCO清掃待ちにリセット"
+              title="全室を清掃待ちにリセット"
             >
               日次初期化
             </button>
