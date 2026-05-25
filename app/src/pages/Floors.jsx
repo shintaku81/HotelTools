@@ -497,7 +497,7 @@ function ProgressDashboard({ rooms }) {
           </div>
           <div className="flex-1 bg-red-50 rounded-xl p-3 text-center border border-red-200">
             <div className="text-3xl font-bold text-red-700">{waiting.length + cleaning.length}</div>
-            <div className="text-xs text-red-600 mt-0.5 font-medium">未清掃</div>
+            <div className="text-xs text-red-600 mt-0.5 font-medium">清掃待ち</div>
           </div>
           <div className="flex-1 bg-slate-50 rounded-xl p-3 text-center border border-slate-200">
             <div className="text-3xl font-bold text-slate-700">{planned.length}</div>
@@ -521,7 +521,7 @@ function ProgressDashboard({ rooms }) {
         {/* Sub breakdown */}
         <div className="flex gap-3 mt-3 text-xs text-slate-500">
           <span><span className="font-bold text-amber-600">{cleaning.length}</span> 件清掃中</span>
-          <span><span className="font-bold text-red-600">{waiting.length}</span> 件待機</span>
+          <span><span className="font-bold text-red-600">{waiting.length}</span> 件清掃待ち</span>
           <span><span className="font-bold text-green-600">{completed.length}</span> 件済み</span>
         </div>
       </div>
@@ -575,7 +575,7 @@ function ProgressDashboard({ rooms }) {
 // ─── Main Component ─────────────────────────────────────────────────────────────
 
 export default function Floors({ user, onLogout, onBack }) {
-  const { rooms, loading, updateRoom } = useRooms()
+  const { rooms, loading, updateRoom, resetAllRooms } = useRooms()
 
   const [activeFloor, setActiveFloor] = useState('all')
   const [selectedRoom, setSelectedRoom] = useState(null)
@@ -583,6 +583,14 @@ export default function Floors({ user, onLogout, onBack }) {
   const [amenityCounts, setAmenityCounts] = useState({})
   const [actionLoading, setActionLoading] = useState(false)
   const [toast, setToast] = useState(null)
+
+  async function handleResetAllRooms() {
+    if (!window.confirm('全室を「CO清掃待ち」状態にリセットします。\nよろしいですか？')) return
+    setActionLoading(true)
+    const { error } = await resetAllRooms()
+    setActionLoading(false)
+    if (!error) showToast('全室をCO清掃待ちにリセットしました')
+  }
 
   function showToast(msg) {
     setToast(msg)
@@ -712,9 +720,19 @@ export default function Floors({ user, onLogout, onBack }) {
             <p className="text-xs text-slate-400 leading-tight">{RoleLabel(user.role)}</p>
             <p className="text-sm text-slate-700 font-medium leading-tight">{user.name}</p>
           </div>
+          {user.role === 'leader' && (
+            <button
+              onClick={handleResetAllRooms}
+              disabled={actionLoading}
+              className="ml-1 px-2 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-xs font-semibold active:bg-amber-100 touch-manipulation border border-amber-200 disabled:opacity-50"
+              title="全室をCO清掃待ちにリセット"
+            >
+              日次初期化
+            </button>
+          )}
           <button
             onClick={onLogout}
-            className="ml-1 px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-xs font-semibold active:bg-slate-200 touch-manipulation border border-slate-200"
+            className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-xs font-semibold active:bg-slate-200 touch-manipulation border border-slate-200"
           >
             ログアウト
           </button>

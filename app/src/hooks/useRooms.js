@@ -43,7 +43,7 @@ const FLOOR_ROOMS = {
 function buildRoom(floor, num, type, extra = {}) {
   return {
     id: String(num), floor, room_number: String(num), room_type: type,
-    status: 'stay', cleaning_type: null, assigned_staff: null,
+    status: 'checkout', cleaning_type: 'co', assigned_staff: null,
     checkout_at: null, cleaning_start_at: null, cleaned_at: null,
     amenities: null, dnd: false, updated_at: new Date().toISOString(), updated_by: null,
     ...extra,
@@ -68,28 +68,44 @@ function generateFallbackRooms() {
     FLOOR_ROOMS[f].forEach(num => rooms.push(buildRoom(f, num, getStdRoomType(num))))
   })
 
+  // 在室中（ステイ）の部屋 — buildRoom のデフォルトは checkout なので stay を明示
   const demos = {
-    '201': { status: 'checkout', cleaning_type: 'co',  checkout_at: ago(45) },
+    '203': { status: 'stay', cleaning_type: null },
+    '207': { status: 'stay', cleaning_type: null },
+    '208': { status: 'stay', cleaning_type: null },
+    '310': { status: 'stay', cleaning_type: null },
+    '311': { status: 'stay', cleaning_type: null },
+    '315': { status: 'stay', cleaning_type: null },
+    '316': { status: 'stay', cleaning_type: null },
+    '320': { status: 'stay', cleaning_type: null },
+    '410': { status: 'stay', cleaning_type: null },
+    '415': { status: 'stay', cleaning_type: null },
+    '416': { status: 'stay', cleaning_type: null },
+    '420': { status: 'stay', cleaning_type: null },
+    '510': { status: 'stay', cleaning_type: null },
+    '515': { status: 'stay', cleaning_type: null },
+    '520': { status: 'stay', cleaning_type: null },
+    '610': { status: 'stay', cleaning_type: null },
+    '615': { status: 'stay', cleaning_type: null },
+    '620': { status: 'stay', cleaning_type: null },
+    '710': { status: 'stay', cleaning_type: null },
+    '715': { status: 'stay', cleaning_type: null },
+    '720': { status: 'stay', cleaning_type: null },
+    // エコ清掃待ち
     '202': { status: 'checkout', cleaning_type: 'eco', checkout_at: ago(30) },
     '205': { status: 'checkout', cleaning_type: 'eco', checkout_at: ago(20) },
-    '301': { status: 'checkout', cleaning_type: 'co',  checkout_at: ago(82) },
     '302': { status: 'checkout', cleaning_type: 'eco', checkout_at: ago(58) },
-    '303': { status: 'checkout', cleaning_type: 'co',  checkout_at: ago(40) },
     '306': { status: 'checkout', cleaning_type: 'eco', checkout_at: ago(50) },
+    '405': { status: 'checkout', cleaning_type: 'eco', checkout_at: ago(28) },
+    '505': { status: 'checkout', cleaning_type: 'eco', checkout_at: ago(38) },
+    '602': { status: 'checkout', cleaning_type: 'eco', checkout_at: ago(31) },
+    '702': { status: 'checkout', cleaning_type: 'eco', checkout_at: ago(29) },
+    // 清掃中
     '308': { status: 'cleaning', cleaning_type: 'co',  assigned_staff: '三浦', checkout_at: ago(95), cleaning_start_at: ago(22) },
+    '307': { status: 'cleaning', cleaning_type: 'eco', assigned_staff: '高橋', checkout_at: ago(75), cleaning_start_at: ago(10) },
+    // 確認待ち（清掃完了・管理者チェック待ち）
     '305': { status: 'cleaned',  cleaning_type: 'co',  assigned_staff: '三浦', checkout_at: ago(110), cleaning_start_at: ago(40), cleaned_at: ago(8),
              amenities: { bath_towel: 1, face_towel: 1, wash_cloth: 1, bath_mat: 1, amenity_set: 1, shampoo: 1, body_soap: 1, tissue: 1 } },
-    '307': { status: 'cleaning', cleaning_type: 'eco', assigned_staff: '高橋', checkout_at: ago(75), cleaning_start_at: ago(10) },
-    '401': { status: 'checkout', cleaning_type: 'co',  checkout_at: ago(52) },
-    '402': { status: 'checkout', cleaning_type: 'co',  checkout_at: ago(44) },
-    '405': { status: 'checkout', cleaning_type: 'eco', checkout_at: ago(28) },
-    '501': { status: 'checkout', cleaning_type: 'co',  checkout_at: ago(35) },
-    '502': { status: 'checkout', cleaning_type: 'co',  checkout_at: ago(26) },
-    '505': { status: 'checkout', cleaning_type: 'eco', checkout_at: ago(38) },
-    '601': { status: 'checkout', cleaning_type: 'co',  checkout_at: ago(47) },
-    '602': { status: 'checkout', cleaning_type: 'eco', checkout_at: ago(31) },
-    '701': { status: 'checkout', cleaning_type: 'co',  checkout_at: ago(53) },
-    '702': { status: 'checkout', cleaning_type: 'eco', checkout_at: ago(29) },
   }
 
   return rooms.map(r => demos[r.room_number] ? { ...r, ...demos[r.room_number] } : r)
@@ -181,7 +197,6 @@ export function useRooms() {
       return { error }
     }
 
-    // Optimistic update (realtime will also fire)
     setRooms(prev => prev.map(r =>
       r.id === id ? { ...r, ...updates, updated_at: now } : r
     ))
@@ -189,5 +204,39 @@ export function useRooms() {
     return { error: null }
   }, [])
 
-  return { rooms, loading, updateRoom }
+  // 全室を清掃待ち（CO）状態にリセット — 管理者が日次初期化に使用
+  const resetAllRooms = useCallback(async () => {
+    const now = new Date().toISOString()
+    const resetData = {
+      status: 'checkout',
+      cleaning_type: 'co',
+      assigned_staff: null,
+      cleaning_start_at: null,
+      cleaned_at: null,
+      amenities: null,
+      checkout_at: now,
+      updated_at: now,
+    }
+
+    if (!USE_SUPABASE) {
+      setRooms(prev => prev.map(r => ({ ...r, ...resetData })))
+      return { error: null }
+    }
+
+    const ids = rooms.map(r => r.id)
+    const { error } = await supabase
+      .from('room_status')
+      .update(resetData)
+      .in('id', ids)
+
+    if (error) {
+      console.error('Supabase reset error:', error)
+      return { error }
+    }
+
+    setRooms(prev => prev.map(r => ({ ...r, ...resetData })))
+    return { error: null }
+  }, [rooms])
+
+  return { rooms, loading, updateRoom, resetAllRooms }
 }
