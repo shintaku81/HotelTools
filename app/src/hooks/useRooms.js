@@ -43,7 +43,7 @@ const FLOOR_ROOMS = {
 function buildRoom(floor, num, type, extra = {}) {
   return {
     id: String(num), floor, room_number: String(num), room_type: type,
-    status: 'checkout', cleaning_type: 'co', assigned_staff: null,
+    status: 'checkout_pending', cleaning_type: null, assigned_staff: null,
     checkout_at: null, cleaning_start_at: null, cleaned_at: null,
     amenities: null, dnd: false, updated_at: new Date().toISOString(), updated_by: null,
     ...extra,
@@ -68,7 +68,7 @@ function generateFallbackRooms() {
     FLOOR_ROOMS[f].forEach(num => rooms.push(buildRoom(f, num, getStdRoomType(num))))
   })
 
-  // 在室中（ステイ）の部屋 — buildRoom のデフォルトは checkout なので stay を明示
+  // 在室中（ステイ）の部屋 — buildRoom のデフォルトは checkout_pending なので stay を明示
   const demos = {
     '203': { status: 'stay', cleaning_type: null },
     '207': { status: 'stay', cleaning_type: null },
@@ -91,7 +91,14 @@ function generateFallbackRooms() {
     '710': { status: 'stay', cleaning_type: null },
     '715': { status: 'stay', cleaning_type: null },
     '720': { status: 'stay', cleaning_type: null },
-    // エコ清掃待ち
+    // CO清掃待ち（チェックアウト済み・通常清掃待ち）
+    '201': { status: 'checkout', cleaning_type: 'co', checkout_at: ago(45) },
+    '210': { status: 'checkout', cleaning_type: 'co', checkout_at: ago(60) },
+    '301': { status: 'checkout', cleaning_type: 'co', checkout_at: ago(55) },
+    '303': { status: 'checkout', cleaning_type: 'co', checkout_at: ago(40) },
+    '401': { status: 'checkout', cleaning_type: 'co', checkout_at: ago(50) },
+    '501': { status: 'checkout', cleaning_type: 'co', checkout_at: ago(35) },
+    // エコ清掃待ち（チェックアウト済み・連泊軽清掃待ち）
     '202': { status: 'checkout', cleaning_type: 'eco', checkout_at: ago(30) },
     '205': { status: 'checkout', cleaning_type: 'eco', checkout_at: ago(20) },
     '302': { status: 'checkout', cleaning_type: 'eco', checkout_at: ago(58) },
@@ -208,13 +215,13 @@ export function useRooms() {
   const resetAllRooms = useCallback(async () => {
     const now = new Date().toISOString()
     const resetData = {
-      status: 'checkout',
-      cleaning_type: 'co',
+      status: 'checkout_pending',
+      cleaning_type: null,
       assigned_staff: null,
       cleaning_start_at: null,
       cleaned_at: null,
       amenities: null,
-      checkout_at: now,
+      checkout_at: null,
       updated_at: now,
     }
 

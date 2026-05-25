@@ -16,6 +16,9 @@ function getStatusConfig(room) {
   if (room.status === 'stay') {
     return { bg: 'bg-slate-50', border: 'border-slate-200', text: 'text-slate-400', dot: 'bg-slate-300', label: '在室中' }
   }
+  if (room.status === 'checkout_pending') {
+    return { bg: 'bg-violet-50', border: 'border-violet-400', text: 'text-violet-700', dot: 'bg-violet-400', label: 'CO待ち' }
+  }
   if (room.status === 'available') {
     return { bg: 'bg-green-50', border: 'border-green-300', text: 'text-green-700', dot: 'bg-green-500', label: '清掃済み' }
   }
@@ -254,7 +257,27 @@ function RoomDetailModal({ room, user, onClose, onAction, onOpenAmenity, loading
         {/* Action buttons */}
         <div className="px-6 py-4 space-y-2">
 
-          {/* front + available → register CO or eco */}
+          {/* front/leader + checkout_pending → register actual checkout (CO or eco) */}
+          {(role === 'front' || role === 'leader') && room.status === 'checkout_pending' && (
+            <>
+              <button
+                onClick={() => onAction('checkout_co')}
+                disabled={loading}
+                className="w-full py-3 rounded-xl bg-red-600 text-white font-bold text-sm active:bg-red-700 disabled:opacity-60 touch-manipulation"
+              >
+                CO（チェックアウト確認）
+              </button>
+              <button
+                onClick={() => onAction('checkout_eco')}
+                disabled={loading}
+                className="w-full py-3 rounded-xl bg-orange-500 text-white font-bold text-sm active:bg-orange-600 disabled:opacity-60 touch-manipulation"
+              >
+                エコ清掃で登録（連泊継続）
+              </button>
+            </>
+          )}
+
+          {/* front/leader + available → re-register if needed */}
           {(role === 'front' || role === 'leader') && room.status === 'available' && (
             <>
               <button
@@ -262,14 +285,14 @@ function RoomDetailModal({ room, user, onClose, onAction, onOpenAmenity, loading
                 disabled={loading}
                 className="w-full py-3 rounded-xl bg-red-600 text-white font-bold text-sm active:bg-red-700 disabled:opacity-60 touch-manipulation"
               >
-                CO清掃で登録
+                CO清掃で再登録
               </button>
               <button
                 onClick={() => onAction('checkout_eco')}
                 disabled={loading}
                 className="w-full py-3 rounded-xl bg-orange-500 text-white font-bold text-sm active:bg-orange-600 disabled:opacity-60 touch-manipulation"
               >
-                エコ清掃で登録
+                エコ清掃で再登録
               </button>
             </>
           )}
@@ -346,6 +369,7 @@ function RoomDetailModal({ room, user, onClose, onAction, onOpenAmenity, loading
 
 function StatsBar({ rooms }) {
   const stay = rooms.filter(r => r.status === 'stay').length
+  const coPending = rooms.filter(r => r.status === 'checkout_pending').length
   const waiting = rooms.filter(r => r.status === 'checkout').length
   const cleaning = rooms.filter(r => r.status === 'cleaning').length
   const cleaned = rooms.filter(r => r.status === 'cleaned').length
@@ -354,6 +378,7 @@ function StatsBar({ rooms }) {
   return (
     <div className="bg-white border-b border-slate-200 px-4 py-2 flex gap-2 overflow-x-auto">
       <StatBadge color="slate" label="在室中" count={stay} />
+      <StatBadge color="violet" label="CO待ち" count={coPending} />
       <StatBadge color="red" label="清掃待ち" count={waiting} />
       <StatBadge color="amber" label="清掃中" count={cleaning} />
       <StatBadge color="blue" label="確認待ち" count={cleaned} />
@@ -364,11 +389,12 @@ function StatsBar({ rooms }) {
 
 function StatBadge({ color, label, count }) {
   const colorMap = {
-    slate: 'bg-slate-100 text-slate-500',
-    red:   'bg-red-100 text-red-700',
-    amber: 'bg-amber-100 text-amber-700',
-    blue:  'bg-blue-100 text-blue-700',
-    green: 'bg-green-100 text-green-700',
+    slate:  'bg-slate-100 text-slate-500',
+    violet: 'bg-violet-100 text-violet-700',
+    red:    'bg-red-100 text-red-700',
+    amber:  'bg-amber-100 text-amber-700',
+    blue:   'bg-blue-100 text-blue-700',
+    green:  'bg-green-100 text-green-700',
   }
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${colorMap[color]}`}>
@@ -382,7 +408,7 @@ function StatBadge({ color, label, count }) {
 function FloorTabs({ activeFloor, onChange, rooms }) {
   function nonAvailableCount(floor) {
     if (floor === 'all' || floor === 'progress') return 0
-    return rooms.filter(r => r.floor === floor && ['checkout', 'cleaning', 'cleaned'].includes(r.status)).length
+    return rooms.filter(r => r.floor === floor && ['checkout_pending', 'checkout', 'cleaning', 'cleaned'].includes(r.status)).length
   }
 
   const tabs = [
@@ -585,11 +611,11 @@ export default function Floors({ user, onLogout, onBack }) {
   const [toast, setToast] = useState(null)
 
   async function handleResetAllRooms() {
-    if (!window.confirm('全室を「清掃待ち」状態にリセットします。\nよろしいですか？')) return
+    if (!window.confirm('全室を「CO待ち（チェックアウト予定）」状態にリセットします。\nよろしいですか？')) return
     setActionLoading(true)
     const { error } = await resetAllRooms()
     setActionLoading(false)
-    if (!error) showToast('全室を清掃待ちにリセットしました')
+    if (!error) showToast('全室をCO待ちにリセットしました')
   }
 
   function showToast(msg) {
@@ -631,11 +657,11 @@ export default function Floors({ user, onLogout, onBack }) {
     switch (action) {
       case 'checkout_co':
         updates = { status: 'checkout', cleaning_type: 'co', checkout_at: now, updated_by: user.name }
-        toastMsg = `${selectedRoom.room_number}号室をCO待ちに登録しました`
+        toastMsg = `${selectedRoom.room_number}号室をCO清掃待ちに登録しました`
         break
       case 'checkout_eco':
         updates = { status: 'checkout', cleaning_type: 'eco', checkout_at: now, updated_by: user.name }
-        toastMsg = `${selectedRoom.room_number}号室をエコ待ちに登録しました`
+        toastMsg = `${selectedRoom.room_number}号室をエコ清掃待ちに登録しました`
         break
       case 'claim':
         updates = { status: 'cleaning', assigned_staff: user.name, cleaning_start_at: now, updated_by: user.name }
@@ -725,7 +751,7 @@ export default function Floors({ user, onLogout, onBack }) {
               onClick={handleResetAllRooms}
               disabled={actionLoading}
               className="ml-1 px-2 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-xs font-semibold active:bg-amber-100 touch-manipulation border border-amber-200 disabled:opacity-50"
-              title="全室を清掃待ちにリセット"
+              title="全室をCO待ちにリセット（日次初期化）"
             >
               日次初期化
             </button>
