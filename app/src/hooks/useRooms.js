@@ -68,51 +68,38 @@ function generateFallbackRooms() {
     FLOOR_ROOMS[f].forEach(num => rooms.push(buildRoom(f, num, getStdRoomType(num))))
   })
 
-  // 在室中（ステイ）の部屋 — buildRoom のデフォルトは checkout_pending なので stay を明示
-  const demos = {
-    '203': { status: 'stay', cleaning_type: null },
-    '207': { status: 'stay', cleaning_type: null },
-    '208': { status: 'stay', cleaning_type: null },
-    '310': { status: 'stay', cleaning_type: null },
-    '311': { status: 'stay', cleaning_type: null },
-    '315': { status: 'stay', cleaning_type: null },
-    '316': { status: 'stay', cleaning_type: null },
-    '320': { status: 'stay', cleaning_type: null },
-    '410': { status: 'stay', cleaning_type: null },
-    '415': { status: 'stay', cleaning_type: null },
-    '416': { status: 'stay', cleaning_type: null },
-    '420': { status: 'stay', cleaning_type: null },
-    '510': { status: 'stay', cleaning_type: null },
-    '515': { status: 'stay', cleaning_type: null },
-    '520': { status: 'stay', cleaning_type: null },
-    '610': { status: 'stay', cleaning_type: null },
-    '615': { status: 'stay', cleaning_type: null },
-    '620': { status: 'stay', cleaning_type: null },
-    '710': { status: 'stay', cleaning_type: null },
-    '715': { status: 'stay', cleaning_type: null },
-    '720': { status: 'stay', cleaning_type: null },
-    // CO清掃待ち（チェックアウト済み・通常清掃待ち）
-    '201': { status: 'checkout', cleaning_type: 'co', checkout_at: ago(45) },
-    '210': { status: 'checkout', cleaning_type: 'co', checkout_at: ago(60) },
-    '301': { status: 'checkout', cleaning_type: 'co', checkout_at: ago(55) },
-    '303': { status: 'checkout', cleaning_type: 'co', checkout_at: ago(40) },
-    '401': { status: 'checkout', cleaning_type: 'co', checkout_at: ago(50) },
-    '501': { status: 'checkout', cleaning_type: 'co', checkout_at: ago(35) },
-    // エコ清掃待ち（チェックアウト済み・連泊軽清掃待ち）
-    '202': { status: 'checkout', cleaning_type: 'eco', checkout_at: ago(30) },
-    '205': { status: 'checkout', cleaning_type: 'eco', checkout_at: ago(20) },
-    '302': { status: 'checkout', cleaning_type: 'eco', checkout_at: ago(58) },
-    '306': { status: 'checkout', cleaning_type: 'eco', checkout_at: ago(50) },
-    '405': { status: 'checkout', cleaning_type: 'eco', checkout_at: ago(28) },
-    '505': { status: 'checkout', cleaning_type: 'eco', checkout_at: ago(38) },
-    '602': { status: 'checkout', cleaning_type: 'eco', checkout_at: ago(31) },
-    '702': { status: 'checkout', cleaning_type: 'eco', checkout_at: ago(29) },
-    // 清掃中
-    '308': { status: 'cleaning', cleaning_type: 'co',  assigned_staff: '三浦', checkout_at: ago(95), cleaning_start_at: ago(22) },
-    '307': { status: 'cleaning', cleaning_type: 'eco', assigned_staff: '高橋', checkout_at: ago(75), cleaning_start_at: ago(10) },
-    // 確認待ち（清掃完了・管理者チェック待ち）
-    '305': { status: 'cleaned',  cleaning_type: 'co',  assigned_staff: '三浦', checkout_at: ago(110), cleaning_start_at: ago(40), cleaned_at: ago(8),
-             amenities: { bath_towel: 1, face_towel: 1, wash_cloth: 1, bath_mat: 1, amenity_set: 1, shampoo: 1, body_soap: 1, tissue: 1 } },
+  // 実サンプルデータ 2026/05/22 に基づくデモ状態
+  // 在室中（連泊）: 16室
+  const stay = ['306','308','408','420','508','512','514','702','705','706','707','710','712','714','715','720']
+  // 空室（予約なし）: 13室
+  const empty = ['203','301','302','316','319','401','402','416','502','516','519','617','718']
+
+  // 清掃中・確認待ちのデモ（朝の進捗サンプル）
+  const demos = {}
+
+  // 在室中
+  stay.forEach(n => { demos[n] = { status: 'stay', cleaning_type: null } })
+  // 空室（前日清掃済み）
+  empty.forEach(n => { demos[n] = { status: 'available', cleaning_type: null } })
+
+  // 早めにCO済み → 清掃待ち（フロントが登録済み）
+  const earlyCheckout = {
+    '201': ago(62), '210': ago(48), '303': ago(55), '405': ago(40),
+    '501': ago(70), '601': ago(52), '701': ago(45),
+  }
+  Object.entries(earlyCheckout).forEach(([n, t]) => {
+    demos[n] = { status: 'checkout', cleaning_type: 'co', checkout_at: t }
+  })
+
+  // 清掃中（開始済み）
+  demos['407'] = { status: 'cleaning', cleaning_type: 'co', assigned_staff: '三浦',   checkout_at: ago(90), cleaning_start_at: ago(18) }
+  demos['406'] = { status: 'cleaning', cleaning_type: 'co', assigned_staff: '佐々木', checkout_at: ago(85), cleaning_start_at: ago(12) }
+
+  // 確認待ち（清掃完了・リーダーチェック待ち）
+  demos['403'] = {
+    status: 'cleaned', cleaning_type: 'co', assigned_staff: '北川',
+    checkout_at: ago(100), cleaning_start_at: ago(35), cleaned_at: ago(5),
+    amenities: { bath_towel: 1, face_towel: 1, wash_cloth: 1, bath_mat: 1, amenity_set: 1, shampoo: 1, body_soap: 1, tissue: 1 },
   }
 
   return rooms.map(r => demos[r.room_number] ? { ...r, ...demos[r.room_number] } : r)

@@ -635,7 +635,9 @@ export default function Floors({ user, onLogout, onBack }) {
     const activeStaff = loadStaff().filter(s => s.active && !s.retired)
     if (!activeStaff.length) { showToast('出勤スタッフがいません'); return }
 
-    const targets = rooms.filter(r => r.status === 'checkout' && !r.assigned_staff)
+    const targets = rooms.filter(r =>
+      (r.status === 'checkout_pending' || r.status === 'checkout') && !r.assigned_staff
+    )
     if (!targets.length) { showToast('割り当て可能な清掃待ち部屋がありません'); return }
 
     // weighted round-robin: target null → 他の平均
