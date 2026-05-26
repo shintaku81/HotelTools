@@ -156,12 +156,13 @@ export default function CleaningPlan({ onBack, initialDate, onOpenCalendar }) {
       {/* ── 計画対象日バナー（常時表示） ── */}
       <div className="bg-indigo-600 px-4 py-3 flex items-center gap-3">
         <div className="flex-1">
-          <p className="text-[10px] text-indigo-200 uppercase tracking-wider mb-0.5">計画対象日</p>
+          <p className="text-[10px] text-indigo-200 uppercase tracking-wider mb-1">計画対象日</p>
+          <p className="text-xl font-bold text-white leading-none">{fmtPlanDate(saveDate)}</p>
           <input
             type="date"
             value={saveDate}
             onChange={e => { setSaveDate(e.target.value); setSaved(false) }}
-            className="text-white bg-transparent border-b border-white/30 pb-0.5 text-sm font-bold focus:outline-none focus:border-white w-full"
+            className="mt-2 text-indigo-100 bg-white/15 rounded-lg px-2 py-1 text-xs font-medium focus:outline-none focus:bg-white/25 w-full"
           />
         </div>
         {onOpenCalendar && (

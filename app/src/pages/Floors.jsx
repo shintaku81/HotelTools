@@ -803,10 +803,7 @@ export default function Floors({ user, onLogout, onBack }) {
         )}
         <div className="flex-1">
           <p className="text-xs text-slate-400 leading-tight">ホテルパコジュニア 北見</p>
-          <p className="text-sm font-bold text-slate-900 leading-tight">
-            通常清掃
-            <span className="text-[10px] font-normal text-slate-400 ml-1.5">{todayLabel()}</span>
-          </p>
+          <p className="text-sm font-bold text-slate-900 leading-tight">通常清掃</p>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="text-right mr-0.5">
@@ -856,6 +853,12 @@ export default function Floors({ user, onLogout, onBack }) {
           </button>
         </div>
       </header>
+
+      {/* Date strip */}
+      <div className="bg-slate-800 px-4 py-2 flex items-center gap-2">
+        <span className="text-white text-base font-bold">{todayLabel()}</span>
+        <span className="text-slate-400 text-xs">の清掃管理</span>
+      </div>
 
       {/* Stats Bar */}
       <StatsBar rooms={rooms} />

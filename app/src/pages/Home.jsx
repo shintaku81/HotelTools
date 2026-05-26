@@ -77,8 +77,10 @@ export default function Home({ user, onNavigate, onLogout, fontSize = 'medium', 
         <div className="flex items-center justify-between mt-1">
           <div>
             <p className="text-lg font-bold text-slate-900">清掃管理システム</p>
-            <p className="text-sm text-slate-500">{name}さん</p>
-            <p className="text-xs text-slate-400">{todayLabel()}</p>
+            <p className="text-sm text-slate-500 mb-1">{name}さん</p>
+            <span className="inline-flex items-center bg-slate-800 text-white text-sm font-bold px-3 py-1 rounded-full">
+              {todayLabel()}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             {/* Font size switcher */}

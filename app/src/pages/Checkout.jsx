@@ -229,8 +229,8 @@ export default function Checkout({ onBack }) {
             className="text-slate-500 text-lg font-bold px-1 active:opacity-60 touch-manipulation"
           >‹</button>
           <div className="flex-1">
-            <p className="text-xs text-slate-400">フロント業務 — {todayLabel()}</p>
-            <p className="text-sm font-bold text-slate-900">チェックアウト管理</p>
+            <p className="text-base font-bold text-slate-900">{todayLabel()}</p>
+            <p className="text-xs text-slate-400">チェックアウト管理</p>
           </div>
           <div className="text-right">
             <p className="text-xs text-slate-400">未確認</p>
