@@ -4,6 +4,12 @@ import { loadStaff } from '../config/staff.js'
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
+function todayLabel() {
+  const d = new Date()
+  const wd = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()]
+  return `${d.getMonth() + 1}月${d.getDate()}日（${wd}）`
+}
+
 function relativeTime(dateStr) {
   if (!dateStr) return ''
   const m = Math.floor((Date.now() - new Date(dateStr)) / 60000)
@@ -797,7 +803,10 @@ export default function Floors({ user, onLogout, onBack }) {
         )}
         <div className="flex-1">
           <p className="text-xs text-slate-400 leading-tight">ホテルパコジュニア 北見</p>
-          <p className="text-sm font-bold text-slate-900 leading-tight">通常清掃</p>
+          <p className="text-sm font-bold text-slate-900 leading-tight">
+            通常清掃
+            <span className="text-[10px] font-normal text-slate-400 ml-1.5">{todayLabel()}</span>
+          </p>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="text-right mr-0.5">

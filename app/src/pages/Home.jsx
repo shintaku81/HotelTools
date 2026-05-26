@@ -1,5 +1,11 @@
 import { FONT_SIZES, applyFontSize } from '../utils/fontSizeStorage.js'
 
+function todayLabel() {
+  const d = new Date()
+  const wd = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()]
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日（${wd}）`
+}
+
 export default function Home({ user, onNavigate, onLogout, fontSize = 'medium', onFontSize }) {
   const { name, role } = user
   const isLeaderOrFront = role === 'leader' || role === 'front'
@@ -71,7 +77,8 @@ export default function Home({ user, onNavigate, onLogout, fontSize = 'medium', 
         <div className="flex items-center justify-between mt-1">
           <div>
             <p className="text-lg font-bold text-slate-900">清掃管理システム</p>
-            <p className="text-sm text-slate-500">{name}さん でログイン中</p>
+            <p className="text-sm text-slate-500">{name}さん</p>
+            <p className="text-xs text-slate-400">{todayLabel()}</p>
           </div>
           <div className="flex items-center gap-2">
             {/* Font size switcher */}

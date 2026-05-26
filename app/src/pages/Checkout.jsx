@@ -3,6 +3,12 @@ import { useRooms } from '../hooks/useRooms.js'
 
 const FLOORS = [2, 3, 4, 5, 6, 7]
 
+function todayLabel() {
+  const d = new Date()
+  const wd = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()]
+  return `${d.getMonth() + 1}月${d.getDate()}日（${wd}）`
+}
+
 function fmtTime(iso) {
   if (!iso) return ''
   return new Date(iso).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
@@ -223,7 +229,7 @@ export default function Checkout({ onBack }) {
             className="text-slate-500 text-lg font-bold px-1 active:opacity-60 touch-manipulation"
           >‹</button>
           <div className="flex-1">
-            <p className="text-xs text-slate-400">フロント業務</p>
+            <p className="text-xs text-slate-400">フロント業務 — {todayLabel()}</p>
             <p className="text-sm font-bold text-slate-900">チェックアウト管理</p>
           </div>
           <div className="text-right">

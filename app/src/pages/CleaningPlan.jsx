@@ -38,7 +38,14 @@ function RoomTypeBadge({ type }) {
   return <span className={`text-[9px] font-bold px-1 py-px rounded ${map[type] ?? 'bg-slate-100 text-slate-500'}`}>{type}</span>
 }
 
-export default function CleaningPlan({ onBack, initialDate }) {
+function fmtPlanDate(ds) {
+  if (!ds) return ''
+  const d = new Date(ds + 'T00:00:00')
+  const wd = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()]
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日（${wd}）`
+}
+
+export default function CleaningPlan({ onBack, initialDate, onOpenCalendar }) {
   const [rooms, setRooms]             = useState(null)
   const [staffList, setStaffList]     = useState(() => loadStaff())
   const [assignments, setAssignments] = useState(null)
@@ -146,6 +153,27 @@ export default function CleaningPlan({ onBack, initialDate }) {
         )}
       </header>
 
+      {/* ── 計画対象日バナー（常時表示） ── */}
+      <div className="bg-indigo-600 px-4 py-3 flex items-center gap-3">
+        <div className="flex-1">
+          <p className="text-[10px] text-indigo-200 uppercase tracking-wider mb-0.5">計画対象日</p>
+          <input
+            type="date"
+            value={saveDate}
+            onChange={e => { setSaveDate(e.target.value); setSaved(false) }}
+            className="text-white bg-transparent border-b border-white/30 pb-0.5 text-sm font-bold focus:outline-none focus:border-white w-full"
+          />
+        </div>
+        {onOpenCalendar && (
+          <button
+            onClick={() => onOpenCalendar(saveDate)}
+            className="shrink-0 bg-white/20 text-white text-xs px-3 py-2 rounded-xl font-semibold touch-manipulation active:bg-white/30"
+          >
+            カレンダー ›
+          </button>
+        )}
+      </div>
+
       {/* ── Assignment summary (visible after assignment) ── */}
       {assignments && (
         <div className="bg-white border-b border-slate-200 px-4 py-3">
@@ -184,11 +212,7 @@ export default function CleaningPlan({ onBack, initialDate }) {
           </div>
           {/* Confirm save */}
           <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center gap-2">
-            <input
-              type="date" value={saveDate}
-              onChange={e => { setSaveDate(e.target.value); setSaved(false) }}
-              className="flex-1 border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-700 focus:outline-none focus:border-indigo-400"
-            />
+            <p className="flex-1 text-xs text-slate-500">{fmtPlanDate(saveDate)}の計画</p>
             <button
               onClick={handleSavePlan}
               className={`px-4 py-1.5 rounded-lg text-xs font-bold touch-manipulation transition-all flex-shrink-0

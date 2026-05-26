@@ -57,10 +57,15 @@ export default function App() {
     setScreen('plan')
   }
 
+  function openCalendarFromPlan(date) {
+    if (date) setPlanDate(date)  // preserve date CleaningPlan was on
+    setScreen('calendar')
+  }
+
   if (!user) return <Login onLogin={handleLogin} mode={mode} />
 
   if (screen === 'cleaning')    return <Floors user={user} onLogout={handleLogout} onBack={() => setScreen('home')} />
-  if (screen === 'plan')        return <CleaningPlan onBack={() => setScreen('home')} initialDate={planDate} />
+  if (screen === 'plan')        return <CleaningPlan onBack={() => setScreen('home')} initialDate={planDate} onOpenCalendar={openCalendarFromPlan} />
   if (screen === 'calendar')    return <PlanCalendar onBack={() => setScreen('home')} onNavigatePlan={navigateToPlan} />
   if (screen === 'extra')       return <ExtraCleanings onBack={() => setScreen('home')} />
   if (screen === 'staff')       return <Staff onBack={() => setScreen('home')} />
