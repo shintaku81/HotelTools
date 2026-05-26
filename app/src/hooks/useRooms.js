@@ -68,37 +68,81 @@ function generateFallbackRooms() {
     FLOOR_ROOMS[f].forEach(num => rooms.push(buildRoom(f, num, getStdRoomType(num))))
   })
 
-  // 実サンプルデータ 2026/05/22 に基づくデモ状態
-  // 在室中（連泊）: 16室
-  const stay = ['306','308','408','420','508','512','514','702','705','706','707','710','712','714','715','720']
-  // 空室（予約なし）: 13室
-  const empty = ['203','301','302','316','319','401','402','416','502','516','519','617','718']
-
-  // 清掃中・確認待ちのデモ（朝の進捗サンプル）
+  // 2026/05/23 清掃勤務表（新）に基づくデモ状態
   const demos = {}
 
-  // 在室中
-  stay.forEach(n => { demos[n] = { status: 'stay', cleaning_type: null } })
-  // 空室（前日清掃済み）
-  empty.forEach(n => { demos[n] = { status: 'available', cleaning_type: null } })
-
-  // 早めにCO済み → 清掃待ち（フロントが登録済み）
-  const earlyCheckout = {
-    '201': ago(62), '210': ago(48), '303': ago(55), '405': ago(40),
-    '501': ago(70), '601': ago(52), '701': ago(45),
+  // CO（チェックアウト予定）: 担当スタッフ込み
+  const coRooms = {
+    // 2F — 結城
+    '202': '結城', '203': '結城', '205': '結城', '206': '結城',
+    '207': '結城', '208': '結城', '210': '結城',
+    // 3F — 鹿又・結城
+    '302': '鹿又', '305': '鹿又', '307': '鹿又', '308': '鹿又',
+    '310': '鹿又', '311': '鹿又', '312': '鹿又', '314': '鹿又',
+    '315': '鹿又', '316': '鹿又', '317': '鹿又',
+    '318': '結城', '319': '結城', '320': '結城', '321': '結城',
+    // 4F — 三浦・小松
+    '401': '三浦', '402': '三浦', '405': '三浦', '406': '三浦',
+    '407': '三浦', '408': '三浦', '410': '三浦', '411': '三浦',
+    '412': '三浦', '417': '三浦',
+    '414': '小松', '418': '小松', '420': '小松', '421': '小松',
+    // 5F — 小松・貞廣
+    '501': '小松', '502': '小松', '503': '小松', '505': '小松',
+    '506': '小松', '507': '小松',
+    '508': '貞廣', '510': '貞廣', '511': '貞廣', '512': '貞廣',
+    '514': '貞廣', '515': '貞廣', '516': '貞廣', '517': '貞廣',
+    '518': '貞廣', '520': '貞廣',
+    // 6F — 貞廣・高橋
+    '605': '貞廣', '607': '高橋', '611': '高橋',
+    // 7F — 高橋
+    '703': '高橋', '708': '高橋', '720': '高橋',
   }
-  Object.entries(earlyCheckout).forEach(([n, t]) => {
-    demos[n] = { status: 'checkout', cleaning_type: 'co', checkout_at: t }
+
+  // エコ（連泊・エコ清掃予定）: 清掃種別のみ事前確定
+  const ecoRooms = [
+    '201', '211',
+    '301', '303', '306',
+    '415', '416',
+    '519', '521',
+    '601', '602', '603', '606', '608', '612', '614', '615', '616', '617', '618', '619', '620',
+    '701', '705', '707', '710', '711', '712', '714', '715', '718', '721',
+  ]
+
+  // ステイ（連泊・清掃なし）
+  const stayRooms = ['419', '610', '621', '702', '706', '716', '719']
+
+  // 空室
+  const emptyRooms = ['717']
+
+  Object.entries(coRooms).forEach(([n, staff]) => {
+    demos[n] = { status: 'checkout_pending', cleaning_type: null, assigned_staff: staff }
+  })
+  ecoRooms.forEach(n => {
+    demos[n] = { status: 'checkout_pending', cleaning_type: 'eco' }
+  })
+  stayRooms.forEach(n => {
+    demos[n] = { status: 'stay', cleaning_type: null }
+  })
+  emptyRooms.forEach(n => {
+    demos[n] = { status: 'available', cleaning_type: null }
   })
 
-  // 清掃中（開始済み）
-  demos['407'] = { status: 'cleaning', cleaning_type: 'co', assigned_staff: '三浦',   checkout_at: ago(90), cleaning_start_at: ago(18) }
-  demos['406'] = { status: 'cleaning', cleaning_type: 'co', assigned_staff: '佐々木', checkout_at: ago(85), cleaning_start_at: ago(12) }
+  // 朝8時台に早退済み → 既に清掃待ち（フロントが登録済みのサンプル）
+  const earlyOut = { '202': ago(70), '305': ago(55), '501': ago(80) }
+  Object.entries(earlyOut).forEach(([n, t]) => {
+    demos[n] = { ...demos[n], status: 'checkout', checkout_at: t, cleaning_type: 'co' }
+  })
 
-  // 確認待ち（清掃完了・リーダーチェック待ち）
+  // 清掃中サンプル
   demos['403'] = {
-    status: 'cleaned', cleaning_type: 'co', assigned_staff: '北川',
-    checkout_at: ago(100), cleaning_start_at: ago(35), cleaned_at: ago(5),
+    status: 'cleaning', cleaning_type: 'co', assigned_staff: '三浦',
+    checkout_at: ago(100), cleaning_start_at: ago(22),
+  }
+
+  // 清掃完了（確認待ち）サンプル
+  demos['407'] = {
+    status: 'cleaned', cleaning_type: 'co', assigned_staff: '三浦',
+    checkout_at: ago(130), cleaning_start_at: ago(55), cleaned_at: ago(12),
     amenities: { bath_towel: 1, face_towel: 1, wash_cloth: 1, bath_mat: 1, amenity_set: 1, shampoo: 1, body_soap: 1, tissue: 1 },
   }
 

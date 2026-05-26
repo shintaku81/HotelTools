@@ -8,6 +8,7 @@ import PlanCalendar from './pages/PlanCalendar.jsx'
 import ExtraCleanings from './pages/ExtraCleanings.jsx'
 import Staff from './pages/Staff.jsx'
 import RoomMaster from './pages/RoomMaster.jsx'
+import Checkout from './pages/Checkout.jsx'
 
 // URL-based mode detection
 // /        → staff mode  (cleaner role)
@@ -64,6 +65,7 @@ export default function App() {
   if (screen === 'extra')       return <ExtraCleanings onBack={() => setScreen('home')} />
   if (screen === 'staff')       return <Staff onBack={() => setScreen('home')} />
   if (screen === 'roommaster')  return <RoomMaster onBack={() => setScreen('home')} />
+  if (screen === 'checkout')    return <Checkout onBack={() => setScreen('home')} />
 
   return <Home user={user} onNavigate={setScreen} onLogout={handleLogout} mode={mode} fontSize={fontSize} onFontSize={setFontSize} />
 }
