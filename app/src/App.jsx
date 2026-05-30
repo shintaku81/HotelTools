@@ -9,21 +9,28 @@ import ExtraCleanings from './pages/ExtraCleanings.jsx'
 import Staff from './pages/Staff.jsx'
 import RoomMaster from './pages/RoomMaster.jsx'
 import Checkout from './pages/Checkout.jsx'
+import SuperAdmin from './pages/SuperAdmin.jsx'
 
 // URL-based mode detection
-// /        → staff mode  (cleaner role)
-// /admin   → admin mode  (leader role)
+// /            → staff mode      (cleaner role)
+// /admin       → admin mode      (leader role)
+// /superadmin  → superadmin mode (マグロボ: 全ホテル横断管理)
 function detectMode() {
   const path = window.location.pathname.replace(/\/$/, '')
-  return path === '/admin' ? 'admin' : 'staff'
+  if (path === '/admin') return 'admin'
+  if (path === '/superadmin') return 'superadmin'
+  return 'staff'
 }
 
-const STORAGE_KEY_STAFF = 'hotel_user_staff'
-const STORAGE_KEY_ADMIN  = 'hotel_user_admin'
+const STORAGE_KEYS = {
+  staff: 'hotel_user_staff',
+  admin: 'hotel_user_admin',
+  superadmin: 'hotel_user_super',
+}
 
 export default function App() {
-  const mode = detectMode()   // 'staff' | 'admin'
-  const storageKey = mode === 'admin' ? STORAGE_KEY_ADMIN : STORAGE_KEY_STAFF
+  const mode = detectMode()   // 'staff' | 'admin' | 'superadmin'
+  const storageKey = STORAGE_KEYS[mode] ?? STORAGE_KEYS.staff
 
   const [user, setUser]         = useState(null)
   const [screen, setScreen]     = useState('home')
@@ -63,6 +70,9 @@ export default function App() {
   }
 
   if (!user) return <Login onLogin={handleLogin} mode={mode} />
+
+  // スーパーアドミン（マグロボ）はホテル管理コンソールへ
+  if (mode === 'superadmin') return <SuperAdmin onLogout={handleLogout} />
 
   if (screen === 'cleaning')    return <Floors user={user} onLogout={handleLogout} onBack={() => setScreen('home')} />
   if (screen === 'plan')        return <CleaningPlan onBack={() => setScreen('home')} initialDate={planDate} onOpenCalendar={openCalendarFromPlan} />

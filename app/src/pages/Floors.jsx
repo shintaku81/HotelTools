@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRooms, AMENITY_ITEMS, ROOM_TYPE_CONFIG } from '../hooks/useRooms.js'
 import { loadStaff } from '../config/staff.js'
 import { DEFAULT_HOTEL, floorsOf } from '../config/hotels.js'
+import Mascot from '../components/Mascot.jsx'
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
@@ -537,6 +538,9 @@ function ProgressDashboard({ rooms }) {
 
   return (
     <div className="p-4 space-y-4 pb-8">
+
+      {/* マスコット（進捗に反応・タップでキャラ切替） */}
+      <Mascot rate={rate} />
 
       {/* Overall progress */}
       <div className="bg-white rounded-xl border border-slate-200 p-5">

@@ -6,6 +6,7 @@ import { useState } from 'react'
 const ACCOUNTS = {
   staff: [{ id: 'staff', password: '1234',  role: 'cleaner', displayRole: '清掃スタッフ' }],
   admin: [{ id: 'admin', password: 'admin', role: 'leader',  displayRole: '管理者', fixedName: '管理者' }],
+  superadmin: [{ id: 'magurobo', password: 'magurobo', role: 'superadmin', displayRole: 'スーパーアドミン', fixedName: 'マグロボ' }],
 }
 
 const CLEANER_NAMES = [
@@ -175,17 +176,21 @@ export default function Login({ onLogin, mode = 'staff' }) {
         {/* Hint */}
         <div className="mt-8 bg-slate-100 rounded-xl px-4 py-3 space-y-1">
           <p className="text-xs font-bold text-slate-500">テスト用アカウント</p>
-          {isAdmin
-            ? <p className="text-xs text-slate-500">管理者: <span className="font-mono font-bold text-slate-700">admin</span> / <span className="font-mono font-bold text-slate-700">admin</span></p>
-            : <p className="text-xs text-slate-500">清掃スタッフ: <span className="font-mono font-bold text-slate-700">staff</span> / <span className="font-mono font-bold text-slate-700">1234</span></p>
+          {mode === 'superadmin'
+            ? <p className="text-xs text-slate-500">マグロボ: <span className="font-mono font-bold text-slate-700">magurobo</span> / <span className="font-mono font-bold text-slate-700">magurobo</span></p>
+            : isAdmin
+              ? <p className="text-xs text-slate-500">管理者: <span className="font-mono font-bold text-slate-700">admin</span> / <span className="font-mono font-bold text-slate-700">admin</span></p>
+              : <p className="text-xs text-slate-500">清掃スタッフ: <span className="font-mono font-bold text-slate-700">staff</span> / <span className="font-mono font-bold text-slate-700">1234</span></p>
           }
         </div>
 
         {/* URL hint */}
         <p className="mt-4 text-center text-xs text-slate-400">
-          {isAdmin
-            ? <span>スタッフ用: <span className="font-mono">/</span></span>
-            : <span>管理者用: <span className="font-mono">/admin</span></span>
+          {mode === 'superadmin'
+            ? <span>スタッフ用: <span className="font-mono">/</span> / 管理者用: <span className="font-mono">/admin</span></span>
+            : isAdmin
+              ? <span>スタッフ用: <span className="font-mono">/</span></span>
+              : <span>管理者用: <span className="font-mono">/admin</span></span>
           }
         </p>
       </div>

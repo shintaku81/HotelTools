@@ -42,4 +42,14 @@ test.describe('ログイン画面スモーク', () => {
     await page.getByRole('button', { name: 'ログイン' }).click()
     await expect(page.getByText('IDまたはパスワードが違います')).toBeVisible()
   })
+
+  test('スーパーアドミン(マグロボ)がホテル管理コンソールに入れる (/superadmin)', async ({ page }) => {
+    await page.goto('/superadmin')
+    await expect(page.getByText('マグロボ:', { exact: false })).toBeVisible()
+    await page.getByPlaceholder('例: staff').fill('magurobo')
+    await page.getByPlaceholder('パスワードを入力').fill('magurobo')
+    await page.getByRole('button', { name: 'ログイン' }).click()
+    await expect(page.getByText('ホテル管理コンソール')).toBeVisible()
+    await expect(page.getByText('ホテルパコジュニア 北見')).toBeVisible()
+  })
 })
