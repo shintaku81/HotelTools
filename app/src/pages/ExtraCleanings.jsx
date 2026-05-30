@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { DEFAULT_HOTEL, buildRoomsFromHotel, floorsOf } from '../config/hotels.js'
 
 const CLEANING_TYPES = [
   { value: 'extra', label: '追加清掃', color: 'bg-purple-600', active: 'border-purple-500 bg-purple-600 text-white', light: 'bg-purple-50 text-purple-800 border-purple-300' },
@@ -6,16 +7,14 @@ const CLEANING_TYPES = [
   { value: 'eco',   label: 'エコ清掃', color: 'bg-orange-500', active: 'border-orange-400 bg-orange-500 text-white', light: 'bg-orange-50 text-orange-800 border-orange-300' },
 ]
 
-// Hotel room layout (matches useRooms.js FLOOR_ROOMS)
-const FLOOR_ROOMS = {
-  2: [201, 202, 203, 205, 206, 207, 208, 210, 211],
-  3: [301, 302, 303, 305, 306, 307, 308, 310, 311, 312, 314, 315, 316, 317, 318, 319, 320, 321],
-  4: [401, 402, 403, 405, 406, 407, 408, 410, 411, 412, 414, 415, 416, 417, 418, 419, 420, 421],
-  5: [501, 502, 503, 505, 506, 507, 508, 510, 511, 512, 514, 515, 516, 517, 518, 519, 520, 521],
-  6: [601, 602, 603, 605, 606, 607, 608, 610, 611, 612, 614, 615, 616, 617, 618, 619, 620, 621],
-  7: [701, 702, 703, 705, 706, 707, 708, 710, 711, 712, 714, 715, 716, 717, 718, 719, 720, 721],
-}
-const FLOORS = [2, 3, 4, 5, 6, 7]
+// 部屋レイアウトはホテル設定から導出（マルチホテル対応・実在チェックにも使用）
+const FLOORS = floorsOf(DEFAULT_HOTEL)
+const FLOOR_ROOMS = buildRoomsFromHotel(DEFAULT_HOTEL).reduce((acc, r) => {
+  (acc[r.floor] ??= []).push(Number(r.number))
+  return acc
+}, {})
+// 実在する部屋番号の集合（手動入力の誤入力防止）
+const VALID_ROOMS = new Set(buildRoomsFromHotel(DEFAULT_HOTEL).map(r => r.number))
 
 function formatTime(iso) {
   const d = new Date(iso)
@@ -136,6 +135,7 @@ export default function ExtraCleanings({ onBack }) {
   function handleAdd() {
     const trimmed = room.trim()
     if (!trimmed.match(/^\d{3}$/)) { setError('3桁で入力'); return }
+    if (!VALID_ROOMS.has(trimmed)) { setError('存在しない部屋番号です'); return }
     setError('')
     addRoom(trimmed)
     setRoom('')

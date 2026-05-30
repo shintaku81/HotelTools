@@ -726,6 +726,13 @@ export default function Floors({ user, onLogout, onBack }) {
         toastMsg = `${selectedRoom.room_number}号室をエコ清掃待ちに登録しました`
         break
       case 'claim':
+        // 他スタッフが担当済みの部屋を奪う場合は確認（横取り防止）
+        if (selectedRoom.assigned_staff && selectedRoom.assigned_staff !== user.name) {
+          const ok = window.confirm(
+            `${selectedRoom.room_number}号室は${selectedRoom.assigned_staff}さんの担当です。\n担当を引き継ぎますか？`
+          )
+          if (!ok) { setActionLoading(false); return }
+        }
         updates = { status: 'cleaning', assigned_staff: user.name, cleaning_start_at: now, updated_by: user.name }
         toastMsg = `${selectedRoom.room_number}号室の清掃を開始しました`
         break

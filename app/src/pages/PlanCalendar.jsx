@@ -7,6 +7,14 @@ function toDateStr(y, m, d) {
   return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
 }
 
+// 'YYYY-MM-DD' をローカル日付として解釈し曜日(0=日..6=土)を返す。
+// new Date('YYYY-MM-DD') はUTC解釈のため、TZによって曜日がずれるのを防ぐ。
+export function weekdayOf(ds) {
+  const [y, m, d] = String(ds).split('-').map(Number)
+  if (!y || !m || !d) return NaN
+  return new Date(y, m - 1, d).getDay()
+}
+
 function todayStr() {
   const d = new Date()
   return toDateStr(d.getFullYear(), d.getMonth(), d.getDate())
@@ -54,7 +62,7 @@ export default function PlanCalendar({ onBack, onNavigatePlan }) {
     const isHol    = holidays.has(ds)
     const isPast   = ds < TODAY
     const isSel    = ds === selected
-    const dayOfWeek = new Date(ds).getDay()
+    const dayOfWeek = weekdayOf(ds)
 
     let base = 'aspect-square rounded-xl flex flex-col items-center justify-center text-xs font-bold border-2 touch-manipulation transition-all '
     if (isSel) base += 'ring-2 ring-offset-1 ring-slate-700 scale-95 '
