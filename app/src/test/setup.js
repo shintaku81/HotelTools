@@ -7,9 +7,11 @@ import { cleanup } from '@testing-library/react'
 // component tests don't blow up on environment gaps (black-box friendly).
 
 if (typeof window !== 'undefined') {
-  // window.confirm defaults to "OK" so destructive-flow tests can opt in/out.
-  if (!window.confirm) window.confirm = () => true
-  if (!window.alert) window.alert = () => {}
+  // jsdom defines window.confirm/alert as throwing "Not implemented" stubs, so a
+  // truthy guard skips them. Override unconditionally: confirm() → true (proceed),
+  // individual tests can still vi.spyOn(window, 'confirm') to simulate cancel.
+  window.confirm = () => true
+  window.alert = () => {}
   if (!window.matchMedia) {
     window.matchMedia = (query) => ({
       matches: false, media: query, onchange: null,
