@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRooms, AMENITY_ITEMS, ROOM_TYPE_CONFIG } from '../hooks/useRooms.js'
 import { loadStaff } from '../config/staff.js'
+import { DEFAULT_HOTEL, floorsOf } from '../config/hotels.js'
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
@@ -60,7 +61,7 @@ function buildDefaultAmenities(cleaningType, roomType) {
   return counts
 }
 
-const FLOORS = [2, 3, 4, 5, 6, 7]
+const FLOORS = floorsOf(DEFAULT_HOTEL)
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
 

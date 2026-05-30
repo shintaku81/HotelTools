@@ -24,6 +24,24 @@ function renderHome(overrides = {}) {
   return { ...utils, props }
 }
 
+describe('Home — user 未指定の堅牢化（意地悪/回帰）', () => {
+  it('user 自体が undefined でもクラッシュせず「ゲストさん」と表示する', () => {
+    expect(() => renderHome({ user: undefined })).not.toThrow()
+    expect(screen.getByText('ゲストさん')).toBeInTheDocument()
+  })
+
+  it('name が空文字/空白のみのときも「ゲストさん」にフォールバックする', () => {
+    renderHome({ user: { role: 'leader', name: '   ' } })
+    expect(screen.getByText('ゲストさん')).toBeInTheDocument()
+  })
+
+  it('user={} （role欠落）でも cleaner 相当の制限メニューで描画される', () => {
+    renderHome({ user: {} })
+    for (const label of ALWAYS) expect(screen.getByText(label)).toBeInTheDocument()
+    for (const label of LEADER_ONLY) expect(screen.queryByText(label)).not.toBeInTheDocument()
+  })
+})
+
 describe('Home — メニュー表示の権限分離', () => {
   it("role='leader' は7メニュー全部表示する", () => {
     renderHome({ user: USERS.leader })

@@ -1,37 +1,27 @@
 import * as XLSX from 'xlsx'
+import { DEFAULT_HOTEL, DEFAULT_CLEANING_RULES, getRoomTypeFromHotel, getRoomWeightFromHotel } from '../config/hotels.js'
 
-// ─── Room type weights ───────────────────────────────────────────────────────
-// S / W (single / wide): 1.0 pt
-// T  (twin):             1.2 pt
-// TR (triple):           2.0 pt
+// ─── Room type / weight ──────────────────────────────────────────────────────
+// 部屋タイプ・清掃ポイントはホテル設定(config/hotels.js)から導出する。
+// 既定ホテル(パコジュニア北見)を使う後方互換ラッパーを公開。
+//   S / W = 1.0 pt, T = 1.2 pt, TR = 2.0 pt
 
-const ROOM_WEIGHTS = { S: 1.0, W: 1.0, T: 1.2, TR: 2.0 }
-
-// Floor 2 has explicit types; floors 3-7 follow a pattern
-const FLOOR2_TYPES = {
-  201: 'TR', 202: 'T', 203: 'W', 205: 'S', 206: 'S',
-  207: 'S',  208: 'S', 210: 'S', 211: 'S',
+function getRoomType(roomNum, hotel = DEFAULT_HOTEL) {
+  return getRoomTypeFromHotel(hotel, roomNum)
 }
 
-function getRoomType(roomNum) {
-  const n = parseInt(roomNum)
-  if (FLOOR2_TYPES[n]) return FLOOR2_TYPES[n]
-  const last2 = n % 100
-  if ([17, 18].includes(last2)) return 'T'
-  if ([1, 2, 16, 19].includes(last2)) return 'W'
-  return 'S'
-}
-
-export function getRoomWeight(roomNum) {
-  return ROOM_WEIGHTS[getRoomType(roomNum)] ?? 1.0
+export function getRoomWeight(roomNum, hotel = DEFAULT_HOTEL) {
+  return getRoomWeightFromHotel(hotel, roomNum)
 }
 
 // ─── Cleaning type determination ─────────────────────────────────────────────
 // 泊数フィールド: "現在の泊目/総泊数" (e.g. 3/6 = 3rd night of 6-night stay)
-//   current == total             → CO清掃 (last night before checkout)
-//   total > 5 AND current%3==0  → エコ清掃 (eco stay, every 3rd night)
+//   current == total                         → CO清掃 (last night before checkout)
+//   total > ecoMinTotalNights AND
+//   current % ecoEveryNights == 0            → エコ清掃 (long-stay periodic)
+// ルールはホテルごとに可変（既定は total>5 かつ current%3==0）。
 
-export function determineCleaningType(泊数) {
+export function determineCleaningType(泊数, rules = DEFAULT_CLEANING_RULES) {
   if (!泊数 || !String(泊数).includes('/')) return null
   const parts = String(泊数).split('/')
   if (parts.length !== 2) return null
@@ -39,8 +29,9 @@ export function determineCleaningType(泊数) {
   const total   = parseInt(parts[1])
   if (isNaN(current) || isNaN(total) || total === 0 || current <= 0) return null
 
+  const { ecoMinTotalNights, ecoEveryNights } = rules ?? DEFAULT_CLEANING_RULES
   if (current === total) return 'co'
-  if (total > 5 && current % 3 === 0) return 'eco'
+  if (total > ecoMinTotalNights && current % ecoEveryNights === 0) return 'eco'
   return null
 }
 
@@ -60,7 +51,7 @@ export function parseExcel(arrayBuffer) {
     const cleaningType = determineCleaningType(泊数)
     const floor  = parseInt(roomNum[0])
     const type   = getRoomType(roomNum)
-    const weight = ROOM_WEIGHTS[type] ?? 1.0
+    const weight = getRoomWeight(roomNum)
 
     results.push({ room: roomNum, floor: isNaN(floor) ? 0 : floor, 泊数, cleaningType, roomType: type, weight })
   }

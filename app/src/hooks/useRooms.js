@@ -1,44 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { loadRoomOverrides } from '../utils/roomMasterStorage.js'
+import { DEFAULT_HOTEL, ROOM_TYPE_CONFIG, AMENITY_ITEMS, buildRoomsFromHotel } from '../config/hotels.js'
 
-// occupancy = default number of guests per room type (drives amenity defaults)
-export const ROOM_TYPE_CONFIG = {
-  S:  { label: 'S',  weight: 1.0,  occupancy: 1, description: 'シングル' },
-  SD: { label: 'SD', weight: 1.0,  occupancy: 2, description: 'セミダブル' },
-  W:  { label: 'W',  weight: 1.0,  occupancy: 2, description: 'ダブル/ワイド' },
-  T:  { label: 'T',  weight: 1.2,  occupancy: 2, description: 'ツイン' },
-  TR: { label: 'TR', weight: 2.0,  occupancy: 3, description: 'トリプル' },
-}
-
-export const AMENITY_ITEMS = [
-  { key: 'bath_towel',  label: 'バスタオル',     defaultCo: 1, defaultEco: 0 },
-  { key: 'face_towel',  label: 'フェイスタオル',  defaultCo: 1, defaultEco: 0 },
-  { key: 'wash_cloth',  label: 'ウォッシュタオル', defaultCo: 1, defaultEco: 0 },
-  { key: 'bath_mat',    label: 'バスマット',      defaultCo: 1, defaultEco: 0 },
-  { key: 'amenity_set', label: 'アメニティセット', defaultCo: 1, defaultEco: 0 },
-  { key: 'shampoo',     label: 'シャンプー',      defaultCo: 1, defaultEco: 1 },
-  { key: 'body_soap',   label: 'ボディソープ',    defaultCo: 1, defaultEco: 1 },
-  { key: 'tissue',      label: 'ティッシュ',      defaultCo: 1, defaultEco: 0 },
-]
+// 部屋タイプ定義・アメニティ品目はホテル設定(config/hotels.js)を正本とし、
+// 後方互換のため従来どおり useRooms から re-export する。
+export { ROOM_TYPE_CONFIG, AMENITY_ITEMS }
 
 // ─── Fallback: in-memory room data (used when Supabase env vars are not set) ───
-
-function getStdRoomType(num) {
-  const s = num % 100
-  if ([1, 2, 16, 19].includes(s)) return 'W'
-  if ([17, 18].includes(s)) return 'T'
-  return 'S'
-}
-
-const FLOOR_ROOMS = {
-  2: [[201, 'TR'], [202, 'T'], [203, 'W'], [205, 'S'], [206, 'S'], [207, 'S'], [208, 'S'], [210, 'S'], [211, 'S']],
-  3: [301, 302, 303, 305, 306, 307, 308, 310, 311, 312, 314, 315, 316, 317, 318, 319, 320, 321],
-  4: [401, 402, 403, 405, 406, 407, 408, 410, 411, 412, 414, 415, 416, 417, 418, 419, 420, 421],
-  5: [501, 502, 503, 505, 506, 507, 508, 510, 511, 512, 514, 515, 516, 517, 518, 519, 520, 521],
-  6: [601, 602, 603, 605, 606, 607, 608, 610, 611, 612, 614, 615, 616, 617, 618, 619, 620, 621],
-  7: [701, 702, 703, 705, 706, 707, 708, 710, 711, 712, 714, 715, 716, 717, 718, 719, 720, 721],
-}
 
 function buildRoom(floor, num, type, extra = {}) {
   return {
@@ -61,12 +30,10 @@ function applyOverrides(rooms) {
 
 function generateFallbackRooms() {
   const ago = (m) => new Date(Date.now() - m * 60000).toISOString()
-  const rooms = []
 
-  FLOOR_ROOMS[2].forEach(([num, type]) => rooms.push(buildRoom(2, num, type)))
-  ;[3, 4, 5, 6, 7].forEach(f => {
-    FLOOR_ROOMS[f].forEach(num => rooms.push(buildRoom(f, num, getStdRoomType(num))))
-  })
+  // 部屋の正本はホテル設定から生成（マルチホテル対応）
+  const rooms = buildRoomsFromHotel(DEFAULT_HOTEL)
+    .map(r => buildRoom(r.floor, r.number, r.type))
 
   // 2026/05/23 清掃勤務表（新）に基づくデモ状態
   const demos = {}
