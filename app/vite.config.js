@@ -10,6 +10,9 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.js'],
     css: false,
+    // Force in-memory (fallback) mode during tests: blank out Supabase env so
+    // useRooms() never touches the network and component tests stay deterministic.
+    env: { VITE_SUPABASE_URL: '', VITE_SUPABASE_ANON_KEY: '' },
     // Playwright E2E specs live under e2e/ — keep them out of the Vitest run
     exclude: ['e2e/**', 'node_modules/**', 'dist/**'],
     coverage: {
